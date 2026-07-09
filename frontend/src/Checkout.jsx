@@ -1,0 +1,858 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { generateToken, pay, simulateMerchant, updateTokenStatus, updateTokenLimit } from './api';
+
+const playSound = (type) => {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+
+    if (type === 'success') {
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      const gain2 = ctx.createGain();
+
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(523.25, ctx.currentTime);
+      gain1.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(783.99, ctx.currentTime + 0.07);
+      gain2.gain.setValueAtTime(0.0, ctx.currentTime);
+      gain2.gain.setValueAtTime(0.12, ctx.currentTime + 0.07);
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+
+      osc1.start();
+      osc1.stop(ctx.currentTime + 0.35);
+      osc2.start();
+      osc2.stop(ctx.currentTime + 0.45);
+    } else if (type === 'error') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(130, ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(90, ctx.currentTime + 0.25);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    } else if (type === 'click') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1500, ctx.currentTime);
+      gain.gain.setValueAtTime(0.05, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.015);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.02);
+    }
+  } catch (e) {
+    console.error('Sound synthesis failed', e);
+  }
+};
+
+const MERCHANTS = [
+  {
+    name: 'Netflix',
+    amount: 1200,
+    currency: 'PKR',
+    category: 'subscription',
+    device_known: true,
+    location_match: true,
+    past_transactions: 6,
+    desc: 'Known device, matched location, returning user.',
+    expected: 'approve',
+  },
+  {
+    name: 'CryptoBazaar.io',
+    amount: 45000,
+    currency: 'PKR',
+    category: 'crypto_exchange',
+    device_known: false,
+    location_match: false,
+    past_transactions: 0,
+    desc: 'Unknown device, foreign IP, no purchase history.',
+    expected: 'decline',
+  },
+  {
+    name: 'Spotify',
+    amount: 450,
+    currency: 'PKR',
+    category: 'subscription',
+    device_known: true,
+    location_match: false,
+    past_transactions: 2,
+    desc: 'Known device but location mismatch detected.',
+    expected: 'step_up',
+  },
+  {
+    name: 'Daraz',
+    amount: 3500,
+    currency: 'PKR',
+    category: 'ecommerce',
+    device_known: true,
+    location_match: true,
+    past_transactions: 14,
+    desc: 'Repeat buyer, consistent context, low risk.',
+    expected: 'approve',
+  },
+  {
+    name: 'Amazon AWS',
+    amount: 15000,
+    currency: 'PKR',
+    category: 'cloud',
+    device_known: true,
+    location_match: true,
+    past_transactions: 24,
+    desc: 'High value but consistent monthly billing pattern.',
+    expected: 'approve',
+  },
+  {
+    name: 'Uber',
+    amount: 850,
+    currency: 'PKR',
+    category: 'travel',
+    device_known: false,
+    location_match: true,
+    past_transactions: 0,
+    desc: 'New device but location matches typical patterns.',
+    expected: 'step_up',
+  },
+  {
+    name: 'Custom Merchant',
+    amount: 5000,
+    currency: 'PKR',
+    category: 'retail',
+    device_known: false,
+    location_match: false,
+    past_transactions: 0,
+    desc: 'Test your own custom merchant simulation.',
+    expected: 'step_up',
+  }
+];
+
+const EXPECTED_LABELS = {
+  approve: { label: 'Likely approved', cls: 'badge-ok' },
+  decline: { label: 'Likely declined', cls: 'badge-bad' },
+  step_up: { label: 'Likely verification', cls: 'badge-warn' },
+};
+
+function StepDot({ state }) {
+  // state: 'done' | 'active' | 'idle'
+  return (
+    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-colors duration-200 ${
+      state === 'done'   ? 'bg-ok text-white border-ok' :
+      state === 'active' ? 'bg-accent text-white border-accent' :
+                           'bg-surface border-border text-ink-4'
+    }`}>
+      {state === 'done' ? (
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+        </svg>
+      ) : (
+        state === 'active' ? <span className="live-dot" style={{color:'#fff',width:6,height:6}} /> : null
+      )}
+    </div>
+  );
+}
+
+export default function Checkout({ onTransactionComplete }) {
+  const [merchant, setMerchant] = useState(MERCHANTS[0]);
+  const [loading, setLoading] = useState(false);
+  const [tokenData, setTokenData] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [step, setStep] = useState('idle'); // idle | generated | sim | done
+  const [simData, setSimData] = useState(null);
+  const [payResult, setPayResult] = useState(null);
+  const timerRef = useRef(null);
+
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [isPaused, setIsPaused] = useState(false);
+  const [isEditingLimit, setIsEditingLimit] = useState(false);
+  const [editLimitAmount, setEditLimitAmount] = useState('');
+  const [showRawToken, setShowRawToken] = useState(false);
+  const [customName, setCustomName] = useState('My Store');
+  const [customAmount, setCustomAmount] = useState('1000');
+  const cardRef = useRef(null);
+
+  const handleMouseMove = (e) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const rotateY = -((x - rect.width / 2) / (rect.width / 2)) * 12;
+    const rotateX = ((y - rect.height / 2) / (rect.height / 2)) * 12;
+    setTilt({ x: rotateX, y: rotateY });
+  };
+
+  const handleMouseLeave = () => {
+    setTilt({ x: 0, y: 0 });
+  };
+
+  const handleTogglePause = async () => {
+    if (!tokenData) return;
+    playSound('click');
+    setLoading(true);
+    const newStatus = isPaused ? 'active' : 'paused';
+    try {
+      await updateTokenStatus(tokenData.token, newStatus);
+      setIsPaused(!isPaused);
+      setTokenData(prev => ({ ...prev, status: newStatus }));
+    } catch (err) {
+      alert('Failed to update token status.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateLimit = async (e) => {
+    e.preventDefault();
+    if (!tokenData) return;
+    playSound('click');
+    const amt = parseFloat(editLimitAmount);
+    if (isNaN(amt) || amt <= 0) {
+      alert('Please enter a valid amount.');
+      return;
+    }
+    setLoading(true);
+    try {
+      await updateTokenLimit(tokenData.token, amt);
+      setTokenData(prev => ({ ...prev, amount: amt }));
+      setIsEditingLimit(false);
+    } catch (err) {
+      alert('Failed to update spend limit.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (step === 'generated' && timeLeft > 0) {
+      timerRef.current = setTimeout(() => setTimeLeft(n => n - 1), 1000);
+    } else if (step === 'generated' && timeLeft === 0) {
+      reset();
+    }
+    return () => clearTimeout(timerRef.current);
+  }, [timeLeft, step]);
+
+  const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+  const reset = () => {
+    setTokenData(null);
+    setSimData(null);
+    setPayResult(null);
+    setStep('idle');
+    setTimeLeft(0);
+    setIsPaused(false);
+    setIsEditingLimit(false);
+    setEditLimitAmount('');
+    setShowRawToken(false);
+    clearTimeout(timerRef.current);
+  };
+
+  const handleGenerate = async () => {
+    playSound('click');
+    setLoading(true);
+    try {
+      const targetName = merchant.name === 'Custom Merchant' ? customName : merchant.name;
+      const targetAmount = merchant.name === 'Custom Merchant' ? Number(customAmount) : merchant.amount;
+
+      const data = await generateToken(
+        targetName,
+        targetAmount,
+        merchant.currency,
+        300
+      );
+      const masked = `${data.token.slice(0, 4)} **** **** ${data.token.slice(12)}`;
+      setTokenData({ ...data, token_masked: masked });
+      setEditLimitAmount(String(data.amount));
+      setTimeLeft(300);
+      setStep('generated');
+      localStorage.setItem(`raw_${masked}`, data.token);
+    } catch {
+      alert('Could not reach backend. Make sure uvicorn is running on port 8080.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendToMerchant = async () => {
+    playSound('click');
+    setLoading(true);
+    try {
+      const sim = await simulateMerchant(tokenData.token, merchant.amount, merchant.name, {
+        device_known: merchant.device_known,
+        location_match: merchant.location_match,
+        past_transactions_with_merchant: merchant.past_transactions,
+        merchant_category: merchant.category,
+      });
+      setSimData(sim);
+      setStep('sim');
+    } catch {
+      alert('Merchant simulation failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSettle = async () => {
+    setLoading(true);
+    try {
+      const res = await pay(tokenData.token, merchant.name, merchant.amount, {
+        device_known: merchant.device_known,
+        location_match: merchant.location_match,
+        past_transactions_with_merchant: merchant.past_transactions,
+        merchant_category: merchant.category,
+      });
+      setPayResult(res);
+      setStep('done');
+      if (res.decision === 'approve') {
+        playSound('success');
+      } else {
+        playSound('error');
+      }
+      onTransactionComplete?.({
+        transaction_id: res.transaction_id,
+        token: tokenData.token,
+        token_masked: tokenData.token_masked,
+        merchant: merchant.name,
+        amount: merchant.amount,
+        decision: res.decision,
+        explanation: res.explanation
+      });
+    } catch (err) {
+      if (err.response && err.response.data && err.response.data.decision) {
+        const payload = err.response.data;
+        setPayResult(payload);
+        setStep('done');
+        if (payload.decision === 'approve') {
+          playSound('success');
+        } else {
+          playSound('error');
+        }
+        onTransactionComplete?.({
+          transaction_id: payload.transaction_id,
+          token: tokenData.token,
+          token_masked: tokenData.token_masked,
+          merchant: merchant.name,
+          amount: merchant.amount,
+          decision: payload.decision,
+          explanation: payload.explanation
+        });
+      } else {
+        playSound('error');
+        alert('Payment failed.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const stepState = (s) => {
+    const order = ['generated', 'sim', 'done'];
+    const current = order.indexOf(step);
+    const target = order.indexOf(s);
+    if (step === 'idle') return 'idle';
+    if (current > target) return 'done';
+    if (current === target) return 'active';
+    return 'idle';
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+
+      {/* LEFT - Scenario picker */}
+      <div className="lg:col-span-2 space-y-4">
+        <div className="card p-5">
+          <div className="mb-4">
+            <p className="eyebrow mb-1">Test scenario</p>
+            <h2 className="text-base font-semibold text-ink">Select a transaction</h2>
+          </div>
+
+          {/* Dropdown Selector */}
+          <div className="mb-4">
+            <label className="block text-2xs font-semibold text-ink-3 uppercase tracking-wider mb-1.5">Select Preset Merchant</label>
+            <select
+              value={merchant.name}
+              onChange={(e) => {
+                const found = MERCHANTS.find(m => m.name === e.target.value);
+                if (found) setMerchant(found);
+              }}
+              disabled={step !== 'idle'}
+              className="w-full bg-surface border border-border rounded-lg px-3 py-2.5 text-xs text-ink focus:outline-none focus:border-accent cursor-pointer"
+            >
+              {MERCHANTS.map(m => (
+                <option key={m.name} value={m.name}>{m.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Scenario Details Preview Card */}
+          <div className="border border-border rounded-card bg-surface-2 p-4 mb-4">
+            <div className="flex justify-between items-start mb-2.5">
+              <span className="text-xs font-semibold text-accent">{merchant.name}</span>
+              {merchant.name !== 'Custom Merchant' ? (
+                <span className="text-xs font-mono font-semibold text-ink-2">{merchant.amount.toLocaleString()} PKR</span>
+              ) : (
+                <span className="text-xs font-mono font-semibold text-ink-2">{Number(customAmount).toLocaleString()} PKR</span>
+              )}
+            </div>
+            <p className="text-2xs text-ink-3 mb-3 leading-relaxed">
+              {merchant.name === 'Custom Merchant' ? 'Test custom store names and amounts. Great for simulating custom transaction setups.' : merchant.desc}
+            </p>
+            
+            {merchant.name !== 'Custom Merchant' && (
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-border">
+                <span className={EXPECTED_LABELS[merchant.expected].cls}>{EXPECTED_LABELS[merchant.expected].label}</span>
+                <div className="flex items-center gap-2.5 text-3xs font-mono text-ink-4">
+                  <span>{merchant.device_known ? 'Device known' : 'Unknown device'}</span>
+                  <span>●</span>
+                  <span>{merchant.location_match ? 'Location matched' : 'Location mismatch'}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {merchant.name === 'Custom Merchant' && step === 'idle' && (
+            <div className="mb-4 p-4 border border-accent rounded-card bg-accent-muted space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-ink-3 mb-1 uppercase">Store Name</label>
+                <input 
+                  type="text" 
+                  value={customName}
+                  onChange={e => setCustomName(e.target.value)}
+                  className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-ink-3 mb-1 uppercase">Amount (PKR)</label>
+                <input 
+                  type="number" 
+                  value={customAmount}
+                  onChange={e => setCustomAmount(e.target.value)}
+                  className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+                />
+              </div>
+            </div>
+          )}
+
+          {step === 'idle' ? (
+            <button
+              onClick={handleGenerate}
+              disabled={loading}
+              className="btn-primary w-full"
+            >
+              {loading ? <span className="spinner" /> : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                </svg>
+              )}
+              {loading ? 'Generating...' : 'Generate secure token'}
+            </button>
+          ) : (
+            <button onClick={reset} className="btn-secondary w-full">
+              Start over
+            </button>
+          )}
+        </div>
+
+        {/* Info card */}
+        <div className="card p-4 bg-accent-muted border-accent-border">
+          <div className="flex gap-3">
+            <div className="shrink-0 mt-0.5">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-accent mb-1">How this works</p>
+              <p className="text-xs text-ink-2 leading-relaxed">
+                SecurePay AI issues a disposable token instead of your real card number. The token is merchant-locked and amount-capped. If the merchant is breached, attackers get nothing useful.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* RIGHT - Flow workspace */}
+      <div className="lg:col-span-3 space-y-4">
+
+        {/* Progress steps */}
+        {step !== 'idle' && (
+          <div className="card p-5">
+            <div className="flex items-center gap-0">
+              {[
+                { key: 'generated', label: 'Token generated' },
+                { key: 'sim', label: 'Merchant verified' },
+                { key: 'done', label: 'AI decision' },
+              ].map((s, i) => (
+                <React.Fragment key={s.key}>
+                  <div className="flex items-center gap-2 flex-1">
+                    <StepDot state={stepState(s.key)} />
+                    <span className={`text-xs font-medium hidden sm:block ${
+                      stepState(s.key) === 'idle' ? 'text-ink-4' : 'text-ink'
+                    }`}>{s.label}</span>
+                  </div>
+                  {i < 2 && (
+                    <div className={`h-px flex-1 max-w-8 transition-colors ${
+                      stepState(s.key) === 'done' ? 'bg-ok' : 'bg-border'
+                    }`} />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Token card */}
+        {tokenData && (
+          <div className="card p-5 row-in">
+            <div className="flex items-center justify-between mb-4">
+              <p className="eyebrow">Disposable token</p>
+              <span className={isPaused ? "badge badge-bad" : "badge badge-ok"}>
+                <span className="live-dot" style={{color: isPaused ? '#b91c1c' : '#059669', width:6, height:6}} />
+                {isPaused ? 'Paused' : 'Active'}
+              </span>
+            </div>
+
+            {/* Card visual */}
+            <div
+              ref={cardRef}
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+              className="bg-accent rounded-card p-5 mb-4 relative overflow-hidden select-none cursor-pointer"
+              style={{
+                transform: `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+                transition: tilt.x === 0 && tilt.y === 0 ? 'transform 0.5s ease' : 'none',
+                transformStyle: 'preserve-3d',
+                boxShadow: '0 20px 25px -5px rgba(27, 26, 23, 0.1), 0 10px 10px -5px rgba(27, 26, 23, 0.04)'
+              }}
+            >
+              <div className="absolute right-0 top-0 w-40 h-40 rounded-full bg-white/5 -translate-y-12 translate-x-12" />
+              <div className="flex justify-between items-start mb-8" style={{ transform: 'translateZ(30px)' }}>
+                {/* Chip */}
+                <div className="w-9 h-6 rounded bg-yellow-400/80 flex flex-col justify-around px-1 py-0.5 gap-0.5">
+                  <div className="h-px bg-yellow-600/60" />
+                  <div className="h-px bg-yellow-600/60" />
+                  <div className="h-px bg-yellow-600/60" />
+                </div>
+                <div className="text-2xs font-mono text-ink-4 uppercase tracking-widest">SecurePay AI</div>
+              </div>
+              <div className="flex items-center justify-between font-mono text-xl text-white tracking-widest mb-5" style={{ transform: 'translateZ(40px)' }}>
+                <span>{showRawToken ? tokenData.token.match(/.{1,4}/g).join(' ') : tokenData.token_masked}</span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowRawToken(!showRawToken);
+                      playSound('click');
+                    }}
+                    className="p-1 rounded text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                    title={showRawToken ? "Hide card number" : "Show card number"}
+                  >
+                    {showRawToken ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L21 21m-9-9a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(tokenData.token);
+                      playSound('click');
+                      alert('Token card number copied to clipboard!');
+                    }}
+                    className="p-1 rounded text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                    title="Copy card number"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div className="flex justify-between text-2xs font-mono text-ink-4" style={{ transform: 'translateZ(30px)' }}>
+                <div>
+                  <div className="text-ink-5 mb-0.5">MERCHANT LOCK</div>
+                  <div className="text-white font-medium">{tokenData.merchant}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-ink-5 mb-0.5">SPEND CAP</div>
+                  <div className="text-white font-medium">{tokenData.amount} {tokenData.currency}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-ink-5 mb-0.5">EXPIRES IN</div>
+                  <div className={`font-medium ${timeLeft < 60 ? 'text-bad' : 'text-white'}`}>
+                    {fmt(timeLeft)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Auto-destruction progress countdown bar */}
+            <div className="mb-4">
+              <div className="flex justify-between text-2xs text-ink-3 mb-1">
+                <span>Token Life Progress</span>
+                <span>{Math.round((timeLeft / (tokenData.ttl_seconds || 300)) * 100)}%</span>
+              </div>
+              <div className="w-full bg-surface-3 h-1.5 rounded-full overflow-hidden border border-ink-5">
+                <div
+                  className="bg-accent h-full transition-all duration-1000"
+                  style={{ width: `${(timeLeft / (tokenData.ttl_seconds || 300)) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Token details */}
+            <div className="space-y-0">
+              <div className="data-row text-sm">
+                <span className="text-ink-3">Token ID</span>
+                <span className="font-mono text-xs text-ink">{tokenData.token_masked}</span>
+              </div>
+              <div className="data-row text-sm">
+                <span className="text-ink-3">Real card shared with merchant</span>
+                <span className="font-medium text-ok">No</span>
+              </div>
+            </div>
+
+            {/* Controls panel */}
+            <div className="border-t border-ink-5 pt-3 mt-3 flex items-center justify-between gap-4">
+              <button
+                onClick={handleTogglePause}
+                disabled={loading}
+                className="btn-secondary py-1.5 px-3 text-xs"
+              >
+                {isPaused ? (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+                    </svg>
+                    Resume
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" />
+                    </svg>
+                    Pause
+                  </>
+                )}
+              </button>
+
+              {isEditingLimit ? (
+                <form onSubmit={handleUpdateLimit} className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={editLimitAmount}
+                    onChange={(e) => setEditLimitAmount(e.target.value)}
+                    className="border border-ink-4 bg-surface rounded px-2 py-1 text-xs w-24 font-mono focus:outline-none focus:ring-1 focus:ring-accent"
+                    required
+                  />
+                  <button type="submit" disabled={loading} className="btn-primary py-1 px-2.5 text-2xs">Save</button>
+                  <button type="button" onClick={() => setIsEditingLimit(false)} className="btn-secondary py-1 px-2.5 text-2xs">Cancel</button>
+                </form>
+              ) : (
+                <button
+                  onClick={() => setIsEditingLimit(true)}
+                  disabled={loading}
+                  className="btn-secondary py-1.5 px-3 text-xs"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.83 20.013a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                  </svg>
+                  Edit Limit
+                </button>
+              )}
+            </div>
+
+            {step === 'generated' && (
+              <button
+                onClick={handleSendToMerchant}
+                disabled={loading}
+                className="btn-secondary w-full mt-4"
+              >
+                {loading ? <span className="spinner" /> : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                  </svg>
+                )}
+                Send to {merchant.name} checkout
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Merchant terminal view */}
+        {step === 'sim' && simData && (
+          <div className="card p-5 row-in">
+            <div className="flex items-center gap-2 mb-4">
+              <p className="eyebrow">Merchant terminal view</p>
+              <span className="badge badge-neutral ml-auto">What the merchant sees</span>
+            </div>
+
+            <div className="bg-surface-2 border border-border rounded-card overflow-hidden mb-4">
+              <div className="px-4 py-2.5 border-b border-border bg-surface-3 flex items-center gap-2">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-bad/40" />
+                  <div className="w-3 h-3 rounded-full bg-warn/40" />
+                  <div className="w-3 h-3 rounded-full bg-ok/40" />
+                </div>
+                <span className="text-2xs font-mono text-ink-3">{merchant.name} payment-api/checkout</span>
+              </div>
+              <div className="p-4 font-mono text-xs space-y-2.5 text-ink-2">
+                <div className="flex justify-between">
+                  <span className="text-ink-3">token_received</span>
+                  <span className="font-semibold">{simData.received_token}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-ink-3">card_number</span>
+                  <span className="text-ink-4 italic">null</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-ink-3">cardholder_name</span>
+                  <span className="text-ink-4 italic">null</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-ink-3">cvv</span>
+                  <span className="text-ink-4 italic">null</span>
+                </div>
+                <div className="flex justify-between border-t border-border pt-2.5">
+                  <span className="text-ink-3">breach_value</span>
+                  <span className="text-ok font-semibold">$0 (token is worthless to attacker)</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={handleSettle}
+              disabled={loading}
+              className="btn-primary w-full"
+            >
+              {loading ? <span className="spinner" /> : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                </svg>
+              )}
+              Run AI risk analysis
+            </button>
+          </div>
+        )}
+
+        {/* AI decision result */}
+        {step === 'done' && payResult && (
+          <div className={`card p-5 row-in border-l-4 ${
+            payResult.decision === 'approve' ? 'border-l-ok' :
+            payResult.decision === 'step_up' ? 'border-l-warn' :
+            'border-l-bad'
+          }`}>
+            <div className="flex items-start gap-4 mb-4">
+              <div className={`w-10 h-10 rounded-card flex items-center justify-center shrink-0 ${
+                payResult.decision === 'approve' ? 'bg-ok-muted text-ok' :
+                payResult.decision === 'step_up' ? 'bg-warn-muted text-warn' :
+                'bg-bad-muted text-bad'
+              }`}>
+                {payResult.decision === 'approve' && (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                )}
+                {payResult.decision === 'step_up' && (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                  </svg>
+                )}
+                {payResult.decision === 'decline' && (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                )}
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <h3 className="text-base font-semibold text-ink">
+                    {payResult.decision === 'approve' ? 'Payment approved' :
+                     payResult.decision === 'step_up' ? 'Verification required' :
+                     'Payment declined'}
+                  </h3>
+                  {payResult.risk_score !== null && (
+                    <span className={`badge text-2xs ${
+                      payResult.risk_score < 30 ? 'badge-ok' :
+                      payResult.risk_score < 70 ? 'badge-warn' : 'badge-bad'
+                    }`}>
+                      Risk {payResult.risk_score}/100
+                    </span>
+                  )}
+                </div>
+                <p className="text-2xs font-mono text-ink-3">{payResult.transaction_id}</p>
+              </div>
+            </div>
+
+            {/* Risk score bar */}
+            {payResult.risk_score !== null && (
+              <div className="mb-4">
+                <div className="flex justify-between text-2xs text-ink-3 mb-1.5">
+                  <span>AI risk score</span>
+                  <span className="font-mono font-medium">{payResult.risk_score} / 100</span>
+                </div>
+                <div className="progress-bar">
+                  <div
+                    className={`h-full rounded-pill transition-all duration-500 ${
+                      payResult.risk_score < 30 ? 'bg-ok' :
+                      payResult.risk_score < 70 ? 'bg-warn' : 'bg-bad'
+                    }`}
+                    style={{ width: `${payResult.risk_score}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Gemma explanation */}
+            <div className="bg-surface-2 border border-border rounded-card p-4">
+              <p className="text-2xs font-semibold text-ink-3 uppercase tracking-widest mb-2">
+                Gemma 2 explanation
+              </p>
+              <p className="text-sm text-ink-2 leading-relaxed">{payResult.explanation}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {step === 'idle' && (
+          <div className="card p-12 flex flex-col items-center justify-center text-center gap-3">
+            <div className="w-14 h-14 rounded-full bg-surface-3 flex items-center justify-center mb-1">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-ink-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-ink">No active token</p>
+            <p className="text-xs text-ink-3 max-w-xs">
+              Select a scenario and generate a token to watch the full payment flow, from tokenization to AI risk scoring.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

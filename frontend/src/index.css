@@ -1,0 +1,138 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    border-color: #b1ada1; /* Enforce user-defined border color */
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-surface-2 text-ink font-sans;
+    font-feature-settings: "cv01", "cv02", "cv03", "cv04", "ss01";
+  }
+
+  ::selection {
+    @apply bg-accent/20 text-accent;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-surface border border-ink-4 rounded-card shadow-card;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-2 py-0.5 rounded-pill text-2xs font-medium uppercase tracking-wider;
+  }
+
+  .badge-ok {
+    @apply badge bg-ok-muted text-ok border border-ok-border;
+  }
+
+  .badge-warn {
+    @apply badge bg-warn-muted text-warn border border-warn-border;
+  }
+
+  .badge-bad {
+    @apply badge bg-bad-muted text-bad border border-bad-border;
+  }
+
+  .badge-neutral {
+    @apply badge bg-surface-3 text-ink-2 border border-ink-4;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-semibold uppercase tracking-wider rounded-btn transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-accent/35;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-surface hover:bg-surface-3 text-ink-2 text-xs font-semibold uppercase tracking-wider rounded-btn border border-ink-4 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-accent/20;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-3 py-2 text-ink-3 hover:text-ink hover:bg-surface-3 text-xs font-semibold uppercase tracking-wider rounded-btn transition-colors duration-150;
+  }
+
+  .eyebrow {
+    @apply text-2xs font-bold uppercase tracking-widest text-ink-3;
+  }
+
+  .field-label {
+    @apply block text-xs font-semibold uppercase tracking-wider text-ink-2 mb-1.5;
+  }
+
+  .progress-bar {
+    @apply h-2 rounded-pill overflow-hidden bg-surface-3 border border-ink-5;
+  }
+
+  .data-row {
+    @apply flex items-center justify-between py-3 border-b border-ink-5 last:border-0;
+  }
+}
+
+/* Scrollbar - minimal warm theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #b1ada1;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #736f64;
+}
+
+/* Spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* Live dot pulse */
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+/* Row expand animation */
+.detail-panel {
+  overflow: hidden;
+  transition: max-height 0.2s ease;
+}
+
+/* Fade in rows */
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.row-in {
+  animation: row-in 0.15s ease forwards;
+}

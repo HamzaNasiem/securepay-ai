@@ -1,0 +1,43 @@
+# Python compiled files & virtualenvs
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+.venv
+pip-log.txt
+.tox/
+.coverage
+.cache
+.hypothesis/
+
+# SQLite database local storage
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Node dependencies and build assets
+node_modules/
+dist/
+dist-ssr/
+*.local
+.eslintcache
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / IDE configurations
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.sw?
