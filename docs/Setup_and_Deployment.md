@@ -16,14 +16,14 @@ Create a `.env` file at the project root (copy from `.env.example`):
 ```
 FIREWORKS_API_KEY=your_fireworks_key_here
 FIREWORKS_BASE_URL=https://api.fireworks.ai/inference/v1
-FIREWORKS_MODEL=accounts/fireworks/models/gemma2-9b-it
+FIREWORKS_MODEL=accounts/fireworks/models/DeepSeek V4 Pro2-9b-it
 REDIS_URL=redis://redis:6379
 VAULT_ENCRYPTION_KEY=replace_with_32_byte_key
 BACKEND_PORT=8000
 FRONTEND_PORT=5173
 ```
 
-> Note: confirm the exact Gemma model identifier available on Fireworks AI for this hackathon in the AMD/Fireworks docs shared on Discord — model slugs can change; do not hardcode without checking the current Fireworks model catalog.
+> Note: confirm the exact DeepSeek V4 Pro model identifier available on Fireworks AI for this hackathon in the AMD/Fireworks docs shared on Discord — model slugs can change; do not hardcode without checking the current Fireworks model catalog.
 
 ## 3. Local Development (fastest iteration loop)
 
@@ -118,7 +118,7 @@ To strengthen the "use of AMD platforms" criterion, run a small local model (e.g
 pip install torch --index-url https://download.pytorch.org/whl/rocm6.0 --break-system-packages
 python -c "import torch; print(torch.cuda.is_available())"  # should print True on ROCm-enabled instance
 ```
-Use this local model's output (e.g. an anomaly score) as an additional field passed into the Gemma prompt in `ai_risk.py`, so the final explanation incorporates a signal computed directly on AMD hardware.
+Use this local model's output (e.g. an anomaly score) as an additional field passed into the DeepSeek V4 Pro prompt in `ai_risk.py`, so the final explanation incorporates a signal computed directly on AMD hardware.
 
 ## 8. Pre-Submission Checklist
 - [ ] `docker-compose up --build` works from a clean clone with only `.env` added

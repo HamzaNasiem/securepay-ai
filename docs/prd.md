@@ -20,7 +20,7 @@ For consumers and small merchants in underserved markets (Pakistan, South Asia) 
 
 ### Hackathon goals (this submission)
 - G1: Demonstrate a working, end-to-end tokenized payment flow (token issuance → merchant → vault resolution).
-- G2: Demonstrate a genuine, non-trivial use of an LLM (Gemma via Fireworks AI) that adds real product value — explainable risk scoring — not a bolted-on chatbot.
+- G2: Demonstrate a genuine, non-trivial use of an LLM (DeepSeek V4 Pro via Fireworks AI) that adds real product value — explainable risk scoring — not a bolted-on chatbot.
 - G3: Demonstrably use AMD Developer Cloud / ROCm for backend compute, satisfying the "use of AMD platforms" judging criterion.
 - G4: Present a credible, differentiated product and market story.
 
@@ -44,7 +44,7 @@ For consumers and small merchants in underserved markets (Pakistan, South Asia) 
 | F1 | Token generation | One-time, merchant-locked, amount-limited, time-expiring token | Must-have |
 | F2 | Token validation | Reject reused, expired, wrong-merchant, or over-limit tokens | Must-have |
 | F3 | Encrypted vault | AES-256 encrypted mock storage mapping token → fake card | Must-have |
-| F4 | AI risk engine | Gemma (via Fireworks AI) scores + explains each transaction in plain language | Must-have |
+| F4 | AI risk engine | DeepSeek V4 Pro (via Fireworks AI) scores + explains each transaction in plain language | Must-have |
 | F5 | Decision engine | Combines vault validity + AI risk score into approve/step-up/decline | Must-have |
 | F6 | Dashboard | Live transaction feed with AI explanations, kill-token button | Must-have |
 | F7 | Merchant simulator | Mimics a real merchant receiving only the token | Must-have |

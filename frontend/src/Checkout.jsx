@@ -190,7 +190,13 @@ export default function Checkout({ onTransactionComplete }) {
   const [showRawToken, setShowRawToken] = useState(false);
   const [customName, setCustomName] = useState('My Store');
   const [customAmount, setCustomAmount] = useState('1000');
+  const [toastMsg, setToastMsg] = useState('');
   const cardRef = useRef(null);
+
+  const showToast = (msg) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(''), 3000);
+  };
 
   const handleMouseMove = (e) => {
     if (!cardRef.current) return;
@@ -216,7 +222,7 @@ export default function Checkout({ onTransactionComplete }) {
       setIsPaused(!isPaused);
       setTokenData(prev => ({ ...prev, status: newStatus }));
     } catch (err) {
-      alert('Failed to update token status.');
+      showToast('Failed to update token status.');
     } finally {
       setLoading(false);
     }
@@ -228,7 +234,7 @@ export default function Checkout({ onTransactionComplete }) {
     playSound('click');
     const amt = parseFloat(editLimitAmount);
     if (isNaN(amt) || amt <= 0) {
-      alert('Please enter a valid amount.');
+      showToast('Please enter a valid amount.');
       return;
     }
     setLoading(true);
@@ -237,20 +243,20 @@ export default function Checkout({ onTransactionComplete }) {
       setTokenData(prev => ({ ...prev, amount: amt }));
       setIsEditingLimit(false);
     } catch (err) {
-      alert('Failed to update spend limit.');
+      showToast('Failed to update spend limit.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (step === 'generated' && timeLeft > 0) {
+    if (step === 'generated' && timeLeft > 0 && !isPaused) {
       timerRef.current = setTimeout(() => setTimeLeft(n => n - 1), 1000);
     } else if (step === 'generated' && timeLeft === 0) {
       reset();
     }
     return () => clearTimeout(timerRef.current);
-  }, [timeLeft, step]);
+  }, [timeLeft, step, isPaused]);
 
   const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
@@ -287,7 +293,7 @@ export default function Checkout({ onTransactionComplete }) {
       setStep('generated');
       localStorage.setItem(`raw_${masked}`, data.token);
     } catch {
-      alert('Could not reach backend. Make sure uvicorn is running on port 8080.');
+      showToast('Could not reach backend. Make sure uvicorn is running on port 8080.');
     } finally {
       setLoading(false);
     }
@@ -297,7 +303,9 @@ export default function Checkout({ onTransactionComplete }) {
     playSound('click');
     setLoading(true);
     try {
-      const sim = await simulateMerchant(tokenData.token, merchant.amount, merchant.name, {
+      const targetName = merchant.name === 'Custom Merchant' ? customName : merchant.name;
+      const targetAmount = merchant.name === 'Custom Merchant' ? Number(customAmount) : merchant.amount;
+      const sim = await simulateMerchant(tokenData.token, targetAmount, targetName, {
         device_known: merchant.device_known,
         location_match: merchant.location_match,
         past_transactions_with_merchant: merchant.past_transactions,
@@ -306,7 +314,7 @@ export default function Checkout({ onTransactionComplete }) {
       setSimData(sim);
       setStep('sim');
     } catch {
-      alert('Merchant simulation failed.');
+      showToast('Merchant simulation failed.');
     } finally {
       setLoading(false);
     }
@@ -315,7 +323,9 @@ export default function Checkout({ onTransactionComplete }) {
   const handleSettle = async () => {
     setLoading(true);
     try {
-      const res = await pay(tokenData.token, merchant.name, merchant.amount, {
+      const targetName = merchant.name === 'Custom Merchant' ? customName : merchant.name;
+      const targetAmount = merchant.name === 'Custom Merchant' ? Number(customAmount) : merchant.amount;
+      const res = await pay(tokenData.token, targetName, targetAmount, {
         device_known: merchant.device_known,
         location_match: merchant.location_match,
         past_transactions_with_merchant: merchant.past_transactions,
@@ -358,7 +368,7 @@ export default function Checkout({ onTransactionComplete }) {
         });
       } else {
         playSound('error');
-        alert('Payment failed.');
+        showToast('Payment failed.');
       }
     } finally {
       setLoading(false);
@@ -582,7 +592,7 @@ export default function Checkout({ onTransactionComplete }) {
                       e.stopPropagation();
                       navigator.clipboard.writeText(tokenData.token);
                       playSound('click');
-                      alert('Token card number copied to clipboard!');
+                      showToast('Token card number copied to clipboard!');
                     }}
                     className="p-1 rounded text-white/70 hover:text-white hover:bg-white/10 transition-colors"
                     title="Copy card number"
@@ -591,6 +601,24 @@ export default function Checkout({ onTransactionComplete }) {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
                     </svg>
                   </button>
+                </div>
+              </div>
+
+              {/* Token CVV & Expiry visual row */}
+              <div className="flex justify-between items-center text-xs font-mono text-white/95 mb-6 pl-1" style={{ transform: 'translateZ(35px)' }}>
+                <div className="flex gap-6">
+                  <div>
+                    <span className="text-3xs text-white/50 block uppercase leading-none mb-1 font-sans">Expiry</span>
+                    <span className="font-semibold tracking-wider">{tokenData.token_expiry || "12/28"}</span>
+                  </div>
+                  <div>
+                    <span className="text-3xs text-white/50 block uppercase leading-none mb-1 font-sans">CVV</span>
+                    <span className="font-semibold tracking-wider">{tokenData.token_cvv || "782"}</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-3xs text-white/50 block uppercase leading-none mb-1 font-sans">Cardholder</span>
+                  <span className="font-medium tracking-wide text-3xs">SecurePay User</span>
                 </div>
               </div>
               <div className="flex justify-between text-2xs font-mono text-ink-4" style={{ transform: 'translateZ(30px)' }}>
@@ -831,7 +859,7 @@ export default function Checkout({ onTransactionComplete }) {
             {/* Gemma explanation */}
             <div className="bg-surface-2 border border-border rounded-card p-4">
               <p className="text-2xs font-semibold text-ink-3 uppercase tracking-widest mb-2">
-                Gemma 2 explanation
+                AI Risk Explanation
               </p>
               <p className="text-sm text-ink-2 leading-relaxed">{payResult.explanation}</p>
             </div>
@@ -840,19 +868,55 @@ export default function Checkout({ onTransactionComplete }) {
 
         {/* Empty state */}
         {step === 'idle' && (
-          <div className="card p-12 flex flex-col items-center justify-center text-center gap-3">
-            <div className="w-14 h-14 rounded-full bg-surface-3 flex items-center justify-center mb-1">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-ink-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
-              </svg>
+          <div className="card p-8 flex flex-col gap-6">
+            <div className="flex flex-col items-center justify-center text-center mb-2">
+              <div className="w-14 h-14 rounded-full bg-surface-3 flex items-center justify-center mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-ink-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                </svg>
+              </div>
+              <p className="text-base font-semibold text-ink">Payment Flow Guide</p>
+              <p className="text-xs text-ink-3">Follow these steps to see SecurePay AI in action</p>
             </div>
-            <p className="text-sm font-medium text-ink">No active token</p>
-            <p className="text-xs text-ink-3 max-w-xs">
-              Select a scenario and generate a token to watch the full payment flow, from tokenization to AI risk scoring.
-            </p>
+            
+            <div className="space-y-4">
+              <div className="flex gap-3 items-start">
+                <div className="w-6 h-6 rounded bg-accent/20 text-accent flex items-center justify-center text-xs font-bold shrink-0">1</div>
+                <div>
+                  <p className="text-sm font-medium text-ink">Select a Merchant Scenario</p>
+                  <p className="text-xs text-ink-3">Choose a preset from the left panel (e.g., Netflix for approval, CryptoBazaar for decline).</p>
+                </div>
+              </div>
+              <div className="flex gap-3 items-start">
+                <div className="w-6 h-6 rounded bg-accent/20 text-accent flex items-center justify-center text-xs font-bold shrink-0">2</div>
+                <div>
+                  <p className="text-sm font-medium text-ink">Generate Secure Token</p>
+                  <p className="text-xs text-ink-3">Creates a disposable, merchant-locked virtual card.</p>
+                </div>
+              </div>
+              <div className="flex gap-3 items-start">
+                <div className="w-6 h-6 rounded bg-accent/20 text-accent flex items-center justify-center text-xs font-bold shrink-0">3</div>
+                <div>
+                  <p className="text-sm font-medium text-ink">Send to Checkout</p>
+                  <p className="text-xs text-ink-3">See what the merchant actually receives (no real card data!).</p>
+                </div>
+              </div>
+              <div className="flex gap-3 items-start">
+                <div className="w-6 h-6 rounded bg-accent/20 text-accent flex items-center justify-center text-xs font-bold shrink-0">4</div>
+                <div>
+                  <p className="text-sm font-medium text-ink">Run AI Risk Analysis</p>
+                  <p className="text-xs text-ink-3">Our AI evaluates the transaction context and provides a plain-language decision.</p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
+      {toastMsg && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-ink-2 text-white px-6 py-3 rounded-card text-sm font-medium shadow-xl z-50 animate-in fade-in slide-in-from-bottom-4">
+          {toastMsg}
+        </div>
+      )}
     </div>
   );
 }

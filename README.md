@@ -5,14 +5,14 @@
 
 SecurePay AI eliminates the single biggest vulnerability in digital payments: the repeated exposure of a customer's real credit card number (PAN) to every merchant, gateway, and intermediary server it touches. 
 
-It replaces sensitive credentials with disposable, single-use, merchant-locked, and amount-capped tokens, and adds an AI explainability layer powered by **Google Gemma 2** running on **AMD GPU Cloud Infrastructure** via **Fireworks AI**. Instead of a mysterious "declined" screen, SecurePay AI translates security decisions into clear, plain-language explanations.
+It replaces sensitive credentials with disposable, single-use, merchant-locked, and amount-capped tokens, and adds an AI explainability layer powered by **DeepSeek V4 Pro** running on **AMD GPU Cloud Infrastructure** via **Fireworks AI**. Instead of a mysterious "declined" screen, SecurePay AI translates security decisions into clear, plain-language explanations.
 
 ---
 
 ## 🚀 Why SecurePay AI Wins: Value Proposition
-1. **Explainable Trust**: Current fraud prevention engines (like Visa VTS, Mastercard MDES, or rule-based firewalls) act as black boxes. SecurePay AI uses a hosted Gemma 2 model to describe *exactly why* a transaction was approved, flagged for verification, or blocked.
+1. **Explainable Trust**: Current fraud prevention engines (like Visa VTS, Mastercard MDES, or rule-based firewalls) act as black boxes. SecurePay AI uses a hosted DeepSeek V4 Pro model to describe *exactly why* a transaction was approved, flagged for verification, or blocked.
 2. **True Tokenization Security**: Real card details are stored in an AES-256-GCM encrypted database (Vault) and never returned to any API endpoint, merchant simulator, or logger. The merchant only receives a token that cannot be replayed elsewhere.
-3. **Optimized for AMD Ecosystem**: Built explicitly to showcase AMD Developer Cloud compute acceleration, using Fireworks AI's AMD-accelerated endpoints with Google's Gemma 2.
+3. **Optimized for AMD Ecosystem**: Built explicitly to showcase AMD Developer Cloud compute acceleration, using Fireworks AI's AMD-accelerated endpoints with Google's DeepSeek V4 Pro.
 
 ---
 
@@ -34,7 +34,7 @@ It replaces sensitive credentials with disposable, single-use, merchant-locked, 
              ▼                               ▼                               ▼
   ┌─────────────────────┐         ┌─────────────────────┐         ┌─────────────────────┐
   │    Token Engine     │         │   Encrypted Vault   │         │    AI Risk Engine   │
-  │     (Redis 7)       │         │ (SQLite + AES-256)  │         │  (Gemma 2 on AMD)   │
+  │     (Redis 7)       │         │ (SQLite + AES-256)  │         │  (DeepSeek V4 Pro on AMD)   │
   │ • Luhn-valid proxy  │         │ • Strict security   │         │ • Strict JSON specs │
   │ • Merchant-locked   │         │   invariant: real   │         │ • 3-tier fallback   │
   │ • TTL & Kill Switch │         │   data never leaks  │         │   defensive parsing │
@@ -58,7 +58,7 @@ Fill in the credentials in `.env`:
 ```ini
 FIREWORKS_API_KEY=fw_your_api_key_here
 FIREWORKS_BASE_URL=https://api.fireworks.ai/inference/v1
-FIREWORKS_MODEL=accounts/fireworks/models/gemma2-9b-it
+FIREWORKS_MODEL=accounts/fireworks/models/DeepSeek V4 Pro2-9b-it
 REDIS_URL=redis://redis:6379
 VAULT_ENCRYPTION_KEY=replace_with_exactly_32_characters!!
 VAULT_DB_PATH=vault.db
@@ -111,7 +111,7 @@ After seeding, navigate to the **Risk Dashboard** in the browser to view the liv
 2. **Step 2: Merchant Checkout Simulation**
    - Click **Send Token to Netflix Checkout**. The Merchant Simulator view renders, demonstrating that Netflix received the token but PAN/CVV fields are completely `null`.
 3. **Step 3: AI Fraud Analysis**
-   - Click **Process Settlement**. The transaction is processed. Gemma 2 returns an **Approved** status with a plain-language explanation citing why the transaction is safe.
+   - Click **Process Settlement**. The transaction is processed. DeepSeek V4 Pro returns an **Approved** status with a plain-language explanation citing why the transaction is safe.
 4. **Step 4: Real-time Replay Protection**
    - Click **Start New Test** and select **CryptoBazaar.io (45,000 PKR)**. Proceed through the payment. It is **Declined** because the AI flag detects an unrecognized device, location mismatch, and anomalous amount.
 5. **Step 5: Kill Switch in Action**

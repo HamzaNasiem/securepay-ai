@@ -224,7 +224,7 @@ export default function App() {
         <div className="max-w-6xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-2xs text-ink-3">
           <span>SecurePay AI - AMD Developer Hackathon Unicorn Track 2026</span>
           <div className="flex items-center gap-4 font-mono">
-            <span>Gemma 2 9B</span>
+            <span>DeepSeek V4 Pro</span>
             <span className="text-border">|</span>
             <span>Fireworks AI</span>
             <span className="text-border">|</span>

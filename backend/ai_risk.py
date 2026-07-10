@@ -1,7 +1,7 @@
 """
 ai_risk.py — SecurePay AI
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Calls Fireworks AI (Google Gemma 2 — running on AMD-hosted infrastructure)
+Calls Fireworks AI (DeepSeek V4 Pro — running on AMD-hosted infrastructure)
 with a strict JSON-in / JSON-out contract and defensively parses the response.
 
 On ANY failure (network error, bad JSON, invalid fields, timeout) this module
@@ -171,7 +171,7 @@ def _validate_and_coerce(raw: dict, model_id: str) -> dict:
 
 async def score_transaction(payload: dict) -> dict:
     """
-    Score a transaction using Fireworks AI (Google Gemma 2 on AMD infrastructure).
+    Score a transaction using Fireworks AI (DeepSeek V4 Pro on AMD infrastructure).
 
     Parameters
     ----------
@@ -194,7 +194,7 @@ async def score_transaction(payload: dict) -> dict:
     """
     api_key  = os.environ.get("FIREWORKS_API_KEY",  "").strip()
     base_url = os.environ.get("FIREWORKS_BASE_URL", "https://api.fireworks.ai/inference/v1").strip()
-    model    = os.environ.get("FIREWORKS_MODEL",    "accounts/fireworks/models/gemma2-9b-it").strip()
+    model    = os.environ.get("FIREWORKS_MODEL",    "accounts/fireworks/models/deepseek-v4-pro").strip()
 
     is_placeholder = not api_key or "your_fireworks_key" in api_key or "fw_your_api_key" in api_key
 
@@ -210,8 +210,8 @@ async def score_transaction(payload: dict) -> dict:
                 "risk_score": 88,
                 "decision": "decline",
                 "explanation": "Declined: Highly anomalous transaction at CryptoBazaar.io from an unrecognized device in an unmatched location context.",
-                "ai_available": True,
-                "model": "gemma2-local-sim",
+                "ai_available": False,
+                "model": "deepseek-v4-pro-local-sim",
                 "prompt_tokens": 120,
                 "completion_tokens": 45
             }
@@ -220,8 +220,8 @@ async def score_transaction(payload: dict) -> dict:
                 "risk_score": 8,
                 "decision": "approve",
                 "explanation": "Approved: Consistent monthly billing profile matched for Netflix from a trusted device and verified location.",
-                "ai_available": True,
-                "model": "gemma2-local-sim",
+                "ai_available": False,
+                "model": "deepseek-v4-pro-local-sim",
                 "prompt_tokens": 115,
                 "completion_tokens": 42
             }
@@ -230,8 +230,8 @@ async def score_transaction(payload: dict) -> dict:
                 "risk_score": 45,
                 "decision": "step_up",
                 "explanation": "Verify: Transaction at Spotify from a known device but flagged due to a temporary geocoordinate mismatch.",
-                "ai_available": True,
-                "model": "gemma2-local-sim",
+                "ai_available": False,
+                "model": "deepseek-v4-pro-local-sim",
                 "prompt_tokens": 120,
                 "completion_tokens": 48
             }
@@ -240,8 +240,8 @@ async def score_transaction(payload: dict) -> dict:
                 "risk_score": 14,
                 "decision": "approve",
                 "explanation": "Approved: Low-risk purchase at Daraz from a repeat buyer with a consistent context and device signature.",
-                "ai_available": True,
-                "model": "gemma2-local-sim",
+                "ai_available": False,
+                "model": "deepseek-v4-pro-local-sim",
                 "prompt_tokens": 118,
                 "completion_tokens": 41
             }
@@ -252,8 +252,8 @@ async def score_transaction(payload: dict) -> dict:
                     "risk_score": 75,
                     "decision": "step_up",
                     "explanation": f"Verify: Large checkout request of {amount} PKR at {merchant} from an unknown device. Manual agent override required.",
-                    "ai_available": True,
-                    "model": "gemma2-local-sim",
+                    "ai_available": False,
+                    "model": "deepseek-v4-pro-local-sim",
                     "prompt_tokens": 130,
                     "completion_tokens": 52
                 }
@@ -262,8 +262,8 @@ async def score_transaction(payload: dict) -> dict:
                     "risk_score": 22,
                     "decision": "approve",
                     "explanation": f"Approved: Safe, low-value purchase simulated at {merchant} matching typical spending limits.",
-                    "ai_available": True,
-                    "model": "gemma2-local-sim",
+                    "ai_available": False,
+                    "model": "deepseek-v4-pro-local-sim",
                     "prompt_tokens": 125,
                     "completion_tokens": 38
                 }
@@ -366,9 +366,9 @@ async def score_transaction(payload: dict) -> dict:
 
 async def chat_with_agent(message: str, transaction: dict) -> dict[str, Any]:
     """
-    Run an agentic chat session with Gemma 2 to negotiate token overrides.
+    Run an agentic chat session with DeepSeek V4 Pro to negotiate token overrides.
     If Fireworks API key is missing or calls fail, falls back to a high-fidelity
-    local rule-based agent simulator that clones Gemma 2's Chain-of-Thought logs.
+    local rule-based agent simulator that clones DeepSeek V4 Pro's Chain-of-Thought logs.
     """
     key = os.environ.get("FIREWORKS_API_KEY", "").strip()
     is_placeholder = not key or "your_fireworks_key" in key or "fw_your_api_key" in key
@@ -391,7 +391,7 @@ async def chat_with_agent(message: str, transaction: dict) -> dict[str, Any]:
                     "I have successfully verified your confirmation, whitelisted the Karachi location context, "
                     "and resumed your token. You may now retry the payment at your convenience!"
                 ),
-                "model": "gemma2-local-agent"
+                "model": "deepseek-v4-pro-local-agent"
             }
         
         # Scenario 2: Limit modifications
@@ -406,7 +406,7 @@ async def chat_with_agent(message: str, transaction: dict) -> dict[str, Any]:
                     "Understood. I have updated the spending policy for this token and raised the spend limit. "
                     "You can now retry the checkout safely."
                 ),
-                "model": "gemma2-local-agent"
+                "model": "deepseek-v4-pro-local-agent"
             }
         
         # Scenario 3: Explanation questions
@@ -419,11 +419,11 @@ async def chat_with_agent(message: str, transaction: dict) -> dict[str, Any]:
                     "unrecognized device signature. To override this, please confirm: did you authorize this "
                     "payment? Reply 'yes' or 'whitelist' to resume."
                 ),
-                "model": "gemma2-local-agent"
+                "model": "deepseek-v4-pro-local-agent"
             }
 
-    # ── Fireworks Gemma 2 Agent execution ─────────────────────────────────────
-    model = os.environ.get("FIREWORKS_MODEL", "accounts/fireworks/models/gemma2-9b-it")
+    # ── Fireworks DeepSeek V4 Pro Agent execution ─────────────────────────────
+    model = os.environ.get("FIREWORKS_MODEL", "accounts/fireworks/models/deepseek-v4-pro")
     url   = f"{os.environ.get('FIREWORKS_BASE_URL', 'https://api.fireworks.ai/inference/v1')}/chat/completions"
     
     system_prompt = (

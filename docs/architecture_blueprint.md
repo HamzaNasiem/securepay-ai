@@ -15,7 +15,7 @@ User App  →  Token Engine  →  Merchant Simulator
         │   (runs on AMD Dev Cloud)    │
         │                              │
         │  Encrypted Vault ←→ AI Risk  │
-        │        Engine (Gemma via     │
+        │        Engine (DeepSeek V4 Pro via     │
         │        Fireworks + ROCm)     │
         └──────────────┬───────────────┘
                         ▼
@@ -42,9 +42,9 @@ User App  →  Token Engine  →  Merchant Simulator
 
 ### 2.5 AI Risk Engine
 - Receives transaction metadata (amount, merchant, merchant category, token age, device/location match flags, historical merchant frequency).
-- Calls Fireworks AI, model: Gemma (per hackathon partner requirement), with a strict JSON-in/JSON-out prompt contract (see `API_Contract.md`).
+- Calls Fireworks AI, model: DeepSeek V4 Pro (per hackathon partner requirement), with a strict JSON-in/JSON-out prompt contract (see `API_Contract.md`).
 - Returns: `risk_score` (0–100), `decision` (`approve` / `step_up` / `decline`), `explanation` (1–2 plain-language sentences).
-- Stretch goal: run a lightweight local scoring/embedding model directly on the AMD Developer Cloud GPU via ROCm (e.g. a small anomaly-detection model using PyTorch-ROCm) whose output is passed as an additional signal into the Gemma prompt — this directly and visibly uses AMD GPU compute, not just an external API call, which strengthens the "use of AMD platforms" score.
+- Stretch goal: run a lightweight local scoring/embedding model directly on the AMD Developer Cloud GPU via ROCm (e.g. a small anomaly-detection model using PyTorch-ROCm) whose output is passed as an additional signal into the DeepSeek V4 Pro prompt — this directly and visibly uses AMD GPU compute, not just an external API call, which strengthens the "use of AMD platforms" score.
 
 ### 2.6 Decision Engine
 - Combines: (a) vault/token validity check, (b) AI risk engine output.
@@ -61,7 +61,7 @@ User App  →  Token Engine  →  Merchant Simulator
 3. `Merchant Simulator → Backend`: `POST /pay {token, amount, metadata}`
 4. `Backend → Redis (Token Engine)`: validate token (exists? unexpired? correct merchant? under limit?)
 5. `Backend → Vault`: resolve token → confirm real card mapping exists (internal only, no data leaves this call)
-6. `Backend → Fireworks AI (Gemma)`: send transaction metadata, receive risk_score + decision + explanation
+6. `Backend → Fireworks AI (DeepSeek V4 Pro)`: send transaction metadata, receive risk_score + decision + explanation
 7. `Backend → Decision Engine`: combine (4) and (6) → final decision
 8. `Backend → Dashboard`: push transaction result for live display
 9. `Backend → Token Engine`: mark token as used (single-use enforcement) or expire it
@@ -81,7 +81,7 @@ User App  →  Token Engine  →  Merchant Simulator
 | Backend | Python + FastAPI | Async, fast to scaffold, good with AI SDK calls |
 | Token store | Redis | Native TTL support fits token expiry perfectly |
 | Vault | SQLite (or Postgres) + AES-256 (via `cryptography` lib) | Simple, demonstrates encryption clearly |
-| AI inference | Fireworks AI API, Gemma model | Required hackathon partner integration |
+| AI inference | Fireworks AI API, DeepSeek V4 Pro model | Required hackathon partner integration |
 | Compute | AMD Developer Cloud (ROCm) | Required for "use of AMD platforms" criterion |
 | Containerization | Docker + docker-compose | Required by submission rules |
 
@@ -93,7 +93,7 @@ securepay-ai/
 │   ├── main.py                 # FastAPI app entrypoint
 │   ├── token_engine.py         # token generation, TTL, validation
 │   ├── vault.py                # encrypted mock card storage
-│   ├── ai_risk.py              # Fireworks AI / Gemma integration
+│   ├── ai_risk.py              # Fireworks AI / DeepSeek V4 Pro integration
 │   ├── decision.py             # combines vault + AI output
 │   ├── merchant_sim.py         # merchant-side simulated endpoint
 │   └── requirements.txt

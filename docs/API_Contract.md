@@ -131,7 +131,7 @@ Returns the live transaction feed for the dashboard.
 
 ## 5. Internal contract — AI Risk Engine prompt/response (not externally exposed)
 
-**Prompt input sent to Fireworks AI (Gemma model)**
+**Prompt input sent to Fireworks AI (DeepSeek V4 Pro model)**
 ```json
 {
   "amount": 1200,

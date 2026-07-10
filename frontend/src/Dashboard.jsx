@@ -214,7 +214,7 @@ export default function Dashboard({ refreshTrigger }) {
   const hasMetrics = txns.some(t => t.latency_ms);
   const avgLatency = hasMetrics
     ? Math.round(txns.filter(t => t.latency_ms).reduce((a, t) => a + t.latency_ms, 0) / txns.filter(t => t.latency_ms).length)
-    : 182;
+    : 0;
   const totalPromptTokens = txns.reduce((a, t) => a + (t.prompt_tokens || 0), 0);
   const totalCompletionTokens = txns.reduce((a, t) => a + (t.completion_tokens || 0), 0);
   const totalTokens = totalPromptTokens + totalCompletionTokens;
@@ -308,7 +308,7 @@ export default function Dashboard({ refreshTrigger }) {
             <div className="grid grid-cols-3 gap-6 font-mono text-center md:text-right">
               <div>
                 <div className="text-2xs text-ink-3 font-sans font-medium uppercase tracking-wider">Avg Latency</div>
-                <div className="text-base font-bold text-accent">{avgLatency}ms</div>
+                <div className="text-base font-bold text-accent">{hasMetrics ? `${avgLatency}ms` : '—'}</div>
               </div>
               <div>
                 <div className="text-2xs text-ink-3 font-sans font-medium uppercase tracking-wider">Total Tokens</div>
@@ -531,7 +531,7 @@ export default function Dashboard({ refreshTrigger }) {
                           {/* AI explanation */}
                           <div className="bg-surface border border-border rounded-card p-4">
                             <div className="flex items-center justify-between mb-3">
-                              <p className="eyebrow">Gemma 2 explanation</p>
+                              <p className="eyebrow">AI Risk Explanation</p>
                               <span className="text-2xs font-mono text-ink-3">{tx.model?.split('/').pop()}</span>
                             </div>
                             <p className="text-sm text-ink-2 leading-relaxed">{tx.explanation}</p>

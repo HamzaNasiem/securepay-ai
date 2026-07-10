@@ -147,7 +147,10 @@ async def generate_token(
     """
     token      = _build_token()
     now        = datetime.now(timezone.utc)
-    expires_at = (now + timedelta(seconds=ttl_seconds)).isoformat()
+    expires_dt = now + timedelta(seconds=ttl_seconds)
+    expires_at = expires_dt.isoformat()
+    expiry_str = expires_dt.strftime("%m/%y")
+    cvv_str    = "".join(secrets.choice(string.digits) for _ in range(3))
 
     payload = {
         "token":       token,
@@ -158,6 +161,8 @@ async def generate_token(
         "expires_at":  expires_at,
         "created_at":  now.isoformat(),
         "ttl_seconds": ttl_seconds,
+        "token_cvv":   cvv_str,
+        "token_expiry": expiry_str,
     }
 
     # Store with extra audit buffer to support logical expiration response
@@ -181,6 +186,8 @@ async def generate_token(
         "expires_at":    expires_at,
         "status":        STATUS_ACTIVE,
         "ttl_seconds":   ttl_seconds,
+        "token_cvv":     cvv_str,
+        "token_expiry":  expiry_str,
     }
 
 

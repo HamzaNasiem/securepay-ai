@@ -121,7 +121,7 @@ app = FastAPI(
     title="SecurePay AI",
     description=(
         "**Disposable payment tokenization + AI-explained fraud scoring.**\n\n"
-        "Powered by **Google Gemma 2** via Fireworks AI on **AMD Infrastructure**.\n\n"
+        "Powered by **DeepSeek V4 Pro** via Fireworks AI on **AMD Infrastructure**.\n\n"
         "No real card data ever leaves the vault module.  "
         "Every risk decision includes a plain-language explanation."
     ),
@@ -399,12 +399,14 @@ async def api_generate_token(req: GenerateTokenRequest):
     
     # Return exactly the keys defined in the API Contract response schema
     return {
-        "token":      token_data["token"],
-        "merchant":   token_data["merchant"],
-        "amount":     token_data["amount"],
-        "currency":   token_data["currency"],
-        "expires_at": token_data["expires_at"],
-        "status":     token_data["status"]
+        "token":        token_data["token"],
+        "merchant":     token_data["merchant"],
+        "amount":       token_data["amount"],
+        "currency":     token_data["currency"],
+        "expires_at":   token_data["expires_at"],
+        "status":       token_data["status"],
+        "token_cvv":    token_data["token_cvv"],
+        "token_expiry": token_data["token_expiry"]
     }
 
 
@@ -420,7 +422,7 @@ async def api_pay(req: PayRequest):
     1. **Token existence check** — returns 404 if the token does not exist in store.
     2. **Token validation** — checks Redis rules: active? correct merchant? under limit?
     3. **Vault resolution** — confirms encrypted card entry exists (bool only; card data never returned)
-    4. **AI risk scoring** — sends metadata to Fireworks AI (Gemma 2 on AMD)
+    4. **AI risk scoring** — sends metadata to Fireworks AI (DeepSeek V4 Pro on AMD)
     5. **Decision engine** — combines token validity + AI score → final verdict
     6. **Token lifecycle** — marks token as 'used' on approval
     7. **Dashboard feed** — appends transaction to the live feed
@@ -808,7 +810,7 @@ async def health():
         "service":     "SecurePay AI Backend",
         "version":     "1.0.0",
         "redis":       "connected" if redis_ok else "disconnected",
-        "powered_by":  "Google Gemma 2 · Fireworks AI · AMD Infrastructure",
+        "powered_by":  "DeepSeek V4 Pro · Fireworks AI · AMD Infrastructure",
         "vault":       "AES-256-GCM encrypted SQLite",
         "description": (
             "Disposable payment tokenization + AI-explained fraud scoring. "

@@ -58,7 +58,7 @@ export default function AgentWorkspace({ lastTxn, onStatusUpdated }) {
 
     setTerminalLogs(prev => [
       ...prev,
-      `[SYS] Forwarding input to Gemma 2 Risk Analyst Agent...`,
+      `[SYS] Forwarding input to AI Risk Analyst Agent...`,
       `[SYS] Message: "${userMsg}"`
     ]);
 
@@ -112,7 +112,7 @@ export default function AgentWorkspace({ lastTxn, onStatusUpdated }) {
             </div>
             <span className="text-2xs font-semibold tracking-wider uppercase text-green-300">Agent Reasoning Console</span>
           </div>
-          <span className="text-3xs text-ink-3 uppercase">Gemma 2 CoT Log</span>
+          <span className="text-3xs text-ink-3 uppercase">AI CoT Log</span>
         </div>
         
         <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 max-h-[450px]">
@@ -153,56 +153,72 @@ export default function AgentWorkspace({ lastTxn, onStatusUpdated }) {
           </div>
         </div>
 
-        {/* Chat History Feed */}
-        <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-1 min-h-[300px] max-h-[380px]">
-          {history.map((msg, i) => {
-            const isAgent = msg.sender === 'agent';
-            return (
-              <div key={i} className={`flex ${isAgent ? 'justify-start' : 'justify-end'} row-in`}>
-                <div className={`max-w-[85%] rounded-card p-3.5 text-xs leading-relaxed ${
-                  isAgent
-                    ? 'bg-surface-3 border border-border text-ink'
-                    : 'bg-accent text-white font-medium'
-                }`}>
-                  <div className={`text-3xs font-semibold uppercase tracking-wider mb-1 ${
-                    isAgent ? 'text-accent' : 'text-white/80'
-                  }`}>
-                    {isAgent ? 'AI Agent' : 'You'}
+        {lastTxn ? (
+          <>
+            {/* Chat History Feed */}
+            <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-1 min-h-[300px] max-h-[380px]">
+              {history.map((msg, i) => {
+                const isAgent = msg.sender === 'agent';
+                return (
+                  <div key={i} className={`flex ${isAgent ? 'justify-start' : 'justify-end'} row-in`}>
+                    <div className={`max-w-[85%] rounded-card p-3.5 text-xs leading-relaxed ${
+                      isAgent
+                        ? 'bg-surface-3 border border-border text-ink'
+                        : 'bg-accent text-white font-medium'
+                    }`}>
+                      <div className={`text-3xs font-semibold uppercase tracking-wider mb-1 ${
+                        isAgent ? 'text-accent' : 'text-white/80'
+                      }`}>
+                        {isAgent ? 'AI Agent' : 'You'}
+                      </div>
+                      <p>{msg.text}</p>
+                    </div>
                   </div>
-                  <p>{msg.text}</p>
+                );
+              })}
+              {loading && (
+                <div className="flex justify-start row-in">
+                  <div className="bg-surface-3 border border-border rounded-card p-3 text-xs flex items-center gap-2">
+                    <span className="spinner" style={{width:12, height:12}} />
+                    <span className="text-ink-3 font-mono text-2xs">Analyst is thinking...</span>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-          {loading && (
-            <div className="flex justify-start row-in">
-              <div className="bg-surface-3 border border-border rounded-card p-3 text-xs flex items-center gap-2">
-                <span className="spinner" style={{width:12, height:12}} />
-                <span className="text-ink-3 font-mono text-2xs">Analyst is thinking...</span>
-              </div>
+              )}
+              <div ref={chatEndRef} />
             </div>
-          )}
-          <div ref={chatEndRef} />
-        </div>
 
-        {/* Message Input Form */}
-        <form onSubmit={handleSend} className="flex gap-2 border-t border-border pt-4">
-          <input
-            type="text"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder={lastTxn ? "Type 'yes' to authorize this payment, or ask a question..." : "Awaiting flagged payment context..."}
-            disabled={loading || !lastTxn}
-            className="flex-1 bg-surface border border-ink-4 rounded-btn px-4 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-          <button
-            type="submit"
-            disabled={loading || !message.trim() || !lastTxn}
-            className="btn-primary py-2 px-5 text-xs shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Send
-          </button>
-        </form>
+            {/* Message Input Form */}
+            <form onSubmit={handleSend} className="flex gap-2 border-t border-border pt-4">
+              <input
+                type="text"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Type 'yes' to authorize this payment, or ask a question..."
+                disabled={loading}
+                className="flex-1 bg-surface border border-ink-4 rounded-btn px-4 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+              <button
+                type="submit"
+                disabled={loading || !message.trim()}
+                className="btn-primary py-2 px-5 text-xs shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Send
+              </button>
+            </form>
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-8 opacity-60">
+            <div className="w-16 h-16 rounded-full bg-surface-3 flex items-center justify-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-ink-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+              </svg>
+            </div>
+            <p className="text-sm font-semibold text-ink mb-1">No Active Incident</p>
+            <p className="text-xs text-ink-3 max-w-[250px]">
+              The AI Agent is idle. Generate a token and trigger a decline in the Checkout tab to see the Agent in action.
+            </p>
+          </div>
+        )}
 
       </div>
 

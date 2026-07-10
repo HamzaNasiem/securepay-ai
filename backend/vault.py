@@ -381,7 +381,7 @@ async def get_decrypted_breach_records(tokens: list[str]) -> Tuple[list[dict], l
                 decrypted = _decrypt_card(master_blob) if master_blob else _generate_fake_card()
                 exposed_without.append({
                     "cardholder": decrypted.get("cardholder", "John Doe"),
-                    "pan": f"{decrypted.get('pan')[:4]} {decrypted.get('pan')[4:8]} {decrypted.get('pan')[8:12]} {decrypted.get('pan')[12:]}",
+                    "pan": f"{decrypted.get('pan')[:4]} **** **** {decrypted.get('pan')[12:]}",
                     "cvv": decrypted.get("cvv", "123"),
                     "expiry": decrypted.get("expiry", "12/29"),
                     "severity": "CRITICAL",
@@ -408,7 +408,7 @@ async def get_decrypted_breach_records(tokens: list[str]) -> Tuple[list[dict], l
                             # Without SecurePay: The real card database is leaked (exposing PAN, CVV, Expiry, Cardholder)
                             exposed_without.append({
                                 "cardholder": decrypted.get("cardholder", "Valued Customer"),
-                                "pan": f"{decrypted.get('pan')[:4]} {decrypted.get('pan')[4:8]} {decrypted.get('pan')[8:12]} {decrypted.get('pan')[12:]}",
+                                "pan": f"{decrypted.get('pan')[:4]} **** **** {decrypted.get('pan')[12:]}",
                                 "cvv": decrypted.get("cvv"),
                                 "expiry": decrypted.get("expiry"),
                                 "severity": "CRITICAL",
