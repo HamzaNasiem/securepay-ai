@@ -3,595 +3,605 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hamza Nasiem — Hackathon Portfolio</title>
-  <meta name="description" content="Hackathon submissions and engineering projects by Hamza Nasiem. Featuring hardware-accelerated AI and fintech security systems.">
+  <title>Hamza Naseem | Hackathons</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <meta name="description" content="Hackathon projects and AI prototypes built under tight deadlines by Hamza Naseem. Featuring SecurePay AI on AMD MI300X accelerators.">
+  <meta name="keywords" content="Hamza Naseem, Hackathons, AMD Instinct, MI300X, ROCm, SecurePay AI, DeepSeek V4, Bytelytic">
   
   <!-- Open Graph -->
-  <meta property="og:title" content="Hamza Nasiem — Hackathon Portfolio">
-  <meta property="og:description" content="Hackathon submissions and engineering projects by Hamza Nasiem. Featuring SecurePay AI.">
+  <meta property="og:title" content="Hamza Naseem | Hackathons">
+  <meta property="og:description" content="Hackathon projects and AI prototypes built under tight deadlines by Hamza Naseem.">
+  <meta property="og:url" content="https://www.imhamza.com/hackathon">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://imhamza.com/hackathon">
+  <meta property="og:image" content="https://www.imhamza.com/assets/og-image.png">
+  
+  <script defer data-domain="imhamza.com" src="https://plausible.io/js/script.js"></script>
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <style>
+    /* ── DESIGN TOKENS (Match imhamza.com palette) ── */
     :root {
-      --bg: #07070a;
-      --bg-card: #0e0e16;
-      --bg-card-hover: #141420;
-      --border: #1f1f2e;
-      --border-hover: #2e2e42;
-      --accent: #c15f3c; /* AMD-inspired Rust Orange */
-      --accent-glow: rgba(193, 95, 60, 0.15);
-      --accent-hover: #d8704a;
-      --text: #e2e8f0;
-      --text-muted: #8892b0;
-      --text-highlight: #ffffff;
-      --ok: #10b981;
-      --ok-glow: rgba(16, 185, 129, 0.15);
+      --bg:          oklch(0.992 0.002 250);
+      --bg-elevated: oklch(0.975 0.002 250);
+      --bg-overlay:  oklch(0.955 0.003 250);
+      --bg-inset:    oklch(0.945 0.003 250);
+      --fg:          oklch(0.165 0.004 250);
+      --fg-muted:    oklch(0.42  0.004 250);
+      --fg-subtle:   oklch(0.55  0.004 250);
+      --fg-faint:    oklch(0.72  0.004 250);
+      --fg-ghost:    oklch(0.83  0.003 250);
+      --rule:        oklch(0.86  0.003 250);
+      --rule-subtle: oklch(0.92  0.003 250);
+      --green:       oklch(0.52  0.15  155);
+      --blue:        #2563eb;
+      --orange:      #c15f3c; /* AMD inspired orange */
+      --col:         760px;
+      --g:           24px;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:          oklch(0.13 0.003 250);
+        --bg-elevated: oklch(0.17 0.003 250);
+        --bg-overlay:  oklch(0.20 0.003 250);
+        --bg-inset:    oklch(0.10 0.003 250);
+        --fg:          oklch(0.95 0.002 250);
+        --fg-muted:    oklch(0.62 0.004 250);
+        --fg-subtle:   oklch(0.50 0.004 250);
+        --fg-faint:    oklch(0.35 0.004 250);
+        --fg-ghost:    oklch(0.26 0.003 250);
+        --rule:        oklch(0.26 0.003 250);
+        --rule-subtle: oklch(0.21 0.003 250);
+        --green:       oklch(0.65 0.15  155);
+        --blue:        #60a5fa;
+      }
     }
 
-    body {
-      background-color: var(--bg);
-      color: var(--text);
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      background: var(--bg);
+      color: var(--fg);
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 15px;
       line-height: 1.6;
+      scroll-behavior: smooth;
+      overflow-y: scroll;
       overflow-x: hidden;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Background Grids & Orbs */
-    .bg-elements {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 0;
-      overflow: hidden;
-    }
+    a { color: inherit; text-decoration: none; }
 
-    .grid-lines {
-      position: absolute;
-      inset: 0;
-      background-image: 
-        linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-      background-size: 40px 40px;
-    }
-
-    .orb-1 {
-      position: absolute;
-      top: -20%;
-      left: -10%;
-      width: 600px;
-      height: 600px;
-      border-radius: 50%;
-      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
-      filter: blur(80px);
-      animation: float 20s infinite alternate ease-in-out;
-    }
-
-    .orb-2 {
-      position: absolute;
-      bottom: -10%;
-      right: -10%;
-      width: 500px;
-      height: 500px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, transparent 70%);
-      filter: blur(80px);
-      animation: float 25s infinite alternate-reverse ease-in-out;
-    }
-
-    @keyframes float {
-      0% { transform: translate(0, 0) scale(1); }
-      100% { transform: translate(40px, 40px) scale(1.1); }
-    }
-
-    /* Container */
-    .container {
-      max-width: 1000px;
-      margin: 0 auto;
-      padding: 0 24px;
-      position: relative;
-      z-index: 1;
-    }
-
-    /* Header / Nav */
-    header {
-      padding: 40px 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-b: 1px solid var(--border);
-    }
-
-    .brand {
-      font-family: 'Space Grotesk', sans-serif;
-      font-weight: 700;
-      font-size: 1.2rem;
-      letter-spacing: -0.02em;
-      color: var(--text-highlight);
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .brand-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background-color: var(--accent);
-      box-shadow: 0 0 10px var(--accent);
-    }
-
-    .back-link {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-
-    .back-link:hover {
-      color: var(--text-highlight);
-    }
-
-    /* Hero */
-    .hero {
-      padding: 80px 0 60px 0;
-      text-align: center;
-    }
-
-    .hero-eyebrow {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 0.9rem;
+    /* Inline content links decoration */
+    .hero-intro a,
+    .sec-sub a,
+    .hack-title a,
+    .feature-item a {
+      color: var(--fg);
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.2em;
-      color: var(--accent);
-      margin-bottom: 16px;
+      text-decoration: underline;
+      text-decoration-color: var(--fg-muted);
+      text-decoration-thickness: 1.5px;
+      text-underline-offset: 3px;
+      transition: text-decoration-color 0.2s, text-decoration-thickness 0.2s;
+    }
+    .hero-intro a:hover,
+    .sec-sub a:hover,
+    .hack-title a:hover,
+    .feature-item a:hover {
+      text-decoration-color: var(--fg);
+      text-decoration-thickness: 2px;
     }
 
-    .hero-title {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: clamp(2.2rem, 5vw, 3.8rem);
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      color: var(--text-highlight);
-      line-height: 1.1;
-      margin-bottom: 20px;
+    /* ── TOP BAR ── */
+    .topbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 var(--g);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--fg-muted);
+      border-bottom: 1px solid var(--rule);
+      background: var(--bg);
+      z-index: 200;
+    }
+    .tb-center { display: flex; align-items: center; gap: 6px; }
+    .tb-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: tb-pulse 2s ease-in-out infinite;
+    }
+    @keyframes tb-pulse {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.4; }
     }
 
-    .hero-desc {
-      font-size: 1.1rem;
-      color: var(--text-muted);
-      max-width: 600px;
+    /* ── BOTTOM SOCIAL BAR ── */
+    .btmbar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      border-top: 1px solid var(--rule);
+      background: var(--bg);
+      z-index: 200;
+    }
+    .btmbar a {
+      font-size: 13px;
+      color: var(--fg-muted);
+      transition: color 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btmbar a svg { width: 15px; height: 15px; }
+    .btmbar a:hover { color: var(--fg); }
+
+    /* ── MAIN LAYOUT ── */
+    main {
+      max-width: var(--col);
       margin: 0 auto;
-      font-weight: 300;
+      padding: calc(36px + 72px) var(--g) calc(48px + 72px);
     }
 
-    /* Hackathon Grid */
-    .portfolio-grid {
+    /* ── HERO ── */
+    .hero-name {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-style: italic;
+      font-weight: 400;
+      font-size: clamp(64px, 10vw, 88px);
+      line-height: 0.92;
+      letter-spacing: -0.025em;
+      color: var(--fg);
+      margin-bottom: 28px;
+    }
+    .hero-intro { max-width: 580px; margin-bottom: 28px; }
+    .hero-intro p {
+      font-size: 15px;
+      line-height: 1.72;
+      color: var(--fg);
+      margin-bottom: 14px;
+    }
+    .back-home {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--fg-muted);
+      margin-bottom: 24px;
+      transition: color 0.15s;
+    }
+    .back-home:hover { color: var(--fg); }
+
+    /* ── SECTIONS ── */
+    section {
+      margin-top: 48px;
+      padding-top: 20px;
+      border-top: 1px solid var(--rule);
+    }
+    .sh {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .sh-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--fg);
+    }
+    .sh-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--fg-ghost);
+    }
+    .sec-sub {
+      font-size: 14px;
+      color: var(--fg-muted);
+      margin-bottom: 24px;
+      line-height: 1.65;
+    }
+
+    /* ── BADGES ── */
+    .badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      font-weight: 600;
+      padding: 1.5px 6px;
+      border-radius: 3px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      flex-shrink: 0;
+      display: inline-block;
+    }
+    .b-submitted { background: rgba(22, 163, 74, 0.07); color: #16a34a; border: 1px solid rgba(22, 163, 74, 0.18); }
+    .b-completed { background: rgba(37, 99, 235, 0.07); color: #2563eb; border: 1px solid rgba(37, 99, 235, 0.18); }
+    .b-upcoming  { background: var(--bg-inset); color: var(--fg-muted); border: 1px solid var(--rule); }
+
+    /* ── HACKATHON ENTRIES ── */
+    .hack-list {
       display: flex;
       flex-direction: column;
       gap: 40px;
-      padding-bottom: 100px;
     }
-
-    /* Timeline Card */
-    .hackathon-card {
-      background-color: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 32px;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .hackathon-card:hover {
-      border-color: var(--border-hover);
-      transform: translateY(-4px);
-      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
-    }
-
-    .card-glow {
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 250px;
-      height: 250px;
-      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
-      pointer-events: none;
-      z-index: 0;
-      opacity: 0.8;
-    }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 24px;
-      position: relative;
-      z-index: 1;
-      flex-wrap: wrap;
-      gap: 16px;
-    }
-
-    .card-meta {
+    .hack-item {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 12px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--rule-subtle);
     }
-
-    .hackathon-title {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.4rem;
-      font-weight: 700;
-      color: var(--text-highlight);
-      letter-spacing: -0.01em;
+    .hack-item:last-child {
+      border-bottom: none;
     }
-
-    .hackathon-date {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      font-weight: 500;
-    }
-
-    .status-badge {
-      font-size: 0.75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      padding: 6px 12px;
-      border-radius: 20px;
-      background-color: var(--ok-glow);
-      color: var(--ok);
-      border: 1px solid rgba(16, 185, 129, 0.2);
-      box-shadow: 0 0 12px rgba(16, 185, 129, 0.05);
-      display: inline-block;
-    }
-
-    .project-section {
-      position: relative;
-      z-index: 1;
-      margin-bottom: 24px;
-    }
-
-    .project-name {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.8rem;
-      font-weight: 700;
-      color: var(--accent);
-      margin-bottom: 12px;
+    .hack-meta {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--fg-muted);
+      flex-wrap: wrap;
     }
-
-    .project-desc {
-      font-size: 0.95rem;
-      color: var(--text-muted);
-      margin-bottom: 24px;
-      max-width: 800px;
+    .hack-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--fg);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
     }
-
-    /* Key features */
-    .features-title {
-      font-size: 0.8rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-highlight);
-      margin-bottom: 12px;
+    .project-title {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-style: italic;
+      font-size: clamp(28px, 4.5vw, 36px);
+      line-height: 1.1;
+      color: var(--fg);
     }
-
+    .hack-desc {
+      font-size: 14px;
+      color: var(--fg-muted);
+      line-height: 1.7;
+    }
+    
+    /* ── SPECIFIC HACKATHON STYLINGS ── */
     .features-list {
       list-style: none;
       display: grid;
       grid-template-columns: 1fr;
-      gap: 12px;
-      margin-bottom: 28px;
-    }
-
-    @media (min-width: 640px) {
-      .features-list {
-        grid-template-columns: 1fr 1fr;
-      }
-    }
-
-    .feature-item {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      display: flex;
       gap: 10px;
+      margin: 12px 0;
+    }
+    @media (min-width: 640px) {
+      .features-list { grid-template-columns: 1fr 1fr; }
+    }
+    .feature-item {
+      font-size: 13px;
+      color: var(--fg-muted);
+      display: flex;
+      gap: 8px;
       align-items: flex-start;
     }
-
     .feature-item strong {
-      color: var(--text-highlight);
-      font-weight: 600;
+      color: var(--fg);
+      font-weight: 500;
     }
-
     .feature-check {
-      color: var(--accent);
+      color: var(--orange);
       font-weight: bold;
       flex-shrink: 0;
     }
-
+    
     /* Tech Stack Chips */
     .tech-stack {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 32px;
-      position: relative;
-      z-index: 1;
+      gap: 6px;
+      margin: 8px 0;
     }
-
     .tech-chip {
-      font-size: 0.75rem;
-      font-family: monospace;
-      background-color: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      padding: 4px 10px;
-      border-radius: 6px;
-      transition: all 0.2s;
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      background-color: var(--bg-elevated);
+      border: 1px solid var(--rule-subtle);
+      color: var(--fg-muted);
+      padding: 3px 8px;
+      border-radius: 4px;
     }
 
-    .tech-chip:hover {
-      border-color: var(--accent);
-      color: var(--text-highlight);
-    }
-
-    /* Card Actions */
-    .card-actions {
+    /* Links/Actions inside Item */
+    .hack-links {
       display: flex;
-      gap: 12px;
-      position: relative;
-      z-index: 1;
-      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 8px;
     }
-
-    .btn {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 0.85rem;
-      font-weight: 600;
-      padding: 10px 20px;
-      border-radius: 8px;
-      text-decoration: none;
-      transition: all 0.2s;
+    .hack-link-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--fg);
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      cursor: pointer;
+      gap: 4px;
+      border-bottom: 1.5px solid var(--rule);
+      padding-bottom: 2px;
+      transition: all 0.15s ease;
+    }
+    .hack-link-btn:hover {
+      color: var(--orange);
+      border-color: var(--orange);
     }
 
-    .btn-primary {
-      background-color: var(--accent);
-      color: var(--text-highlight);
-      border: 1px solid transparent;
-      box-shadow: 0 4px 14px rgba(193, 95, 60, 0.25);
-    }
-
-    .btn-primary:hover {
-      background-color: var(--accent-hover);
-      box-shadow: 0 6px 20px rgba(193, 95, 60, 0.35);
-    }
-
-    .btn-secondary {
-      background-color: transparent;
-      border: 1px solid var(--border);
-      color: var(--text);
-    }
-
-    .btn-secondary:hover {
-      border-color: var(--border-hover);
-      background-color: rgba(255, 255, 255, 0.02);
-      color: var(--text-highlight);
-    }
-
-    /* Empty state card */
-    .empty-card {
-      border: 2px dashed var(--border);
-      background-color: transparent;
-      border-radius: 16px;
-      padding: 48px;
+    /* Upcoming placeholder */
+    .upcoming-box {
+      border: 1px dashed var(--rule);
+      border-radius: 6px;
+      padding: 24px;
       text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 200px;
-      transition: border-color 0.3s;
+      background: var(--bg-elevated);
     }
-
-    .empty-card:hover {
-      border-color: var(--accent-glow);
-    }
-
-    .empty-title {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.1rem;
+    .upcoming-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
       font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 8px;
+      color: var(--fg-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .upcoming-desc {
+      font-size: 13px;
+      color: var(--fg-subtle);
+      margin-top: 6px;
     }
 
-    .empty-desc {
-      font-size: 0.85rem;
-      color: rgba(136, 146, 176, 0.6);
-      max-width: 320px;
-    }
-
-    /* Footer */
+    /* ── FOOTER ── */
     footer {
-      border-t: 1px solid var(--border);
-      padding: 60px 0 40px 0;
+      margin-top: 72px;
+      padding-top: 24px;
+      border-top: 1px solid var(--rule);
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 20px;
-      text-align: center;
+      justify-content: center;
     }
-
-    .social-links {
-      display: flex;
-      gap: 20px;
+    .ft-links { 
+      display: flex; 
+      gap: 24px; 
+      align-items: center; 
+      flex-wrap: wrap; 
+      justify-content: center; 
     }
-
-    .social-link {
-      color: var(--text-muted);
+    .ft-links a { 
+      display: flex; 
+      align-items: center; 
+      gap: 8px; 
+      font-size: 13px; 
+      font-weight: 500;
+      color: var(--fg-muted); 
       text-decoration: none;
-      font-size: 0.9rem;
-      transition: color 0.2s;
+      transition: color 0.15s;
+    }
+    .ft-links a:hover { color: var(--fg); }
+    .ft-links a svg {
+      width: 14px;
+      height: 14px;
     }
 
-    .social-link:hover {
-      color: var(--accent);
+    /* ── FADE-IN SCROLL ANIMATION ── */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(14px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
     }
-
-    .copyright {
-      font-size: 0.75rem;
-      color: rgba(136, 146, 176, 0.5);
-    }
-
-    /* Responsive */
-    @media (max-width: 640px) {
-      .hero {
-        padding: 40px 0;
-      }
-      .hackathon-card {
-        padding: 24px;
-      }
-      .project-name {
-        font-size: 1.5rem;
-      }
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
     }
   </style>
 </head>
 <body>
 
-  <!-- Background Grids & Orbs -->
-  <div class="bg-elements">
-    <div class="grid-lines"></div>
-    <div class="orb-1"></div>
-    <div class="orb-2"></div>
+<!-- ── TOP BAR ── -->
+<div class="topbar">
+  <div class="tb-center">
+    <span class="tb-dot"></span>
+    <span id="top-clock">--:--:-- PKT</span>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<main>
+
+  <a href="https://www.imhamza.com" class="back-home">← Back to Home</a>
+  
+  <h1 class="hero-name">Hackathons.</h1>
+
+  <div class="hero-intro">
+    <p>A log of systems designed, written, and deployed under tight hackathon constraints.</p>
+    <p>Each entry represents a complete solution—focused on clean engineering architecture, deterministic code pathways, and resolving real-world security or optimization bottlenecks.</p>
   </div>
 
-  <div class="container">
-    <!-- Header -->
-    <header>
-      <a href="https://imhamza.com" class="brand">
-        <div class="brand-dot"></div>
-        Hamza Nasiem
-      </a>
-      <a href="https://imhamza.com" class="back-link">← Back to Home</a>
-    </header>
+  <!-- 01 · ENTRIES -->
+  <section id="hackathons" class="fade-in visible">
+    <div class="sh">
+      <h2 class="sh-label">01 · Submissions</h2>
+      <span class="sh-count">2</span>
+    </div>
+    <p class="sec-sub">Active projects and past entries submitted to developer hackathons.</p>
 
-    <!-- Hero -->
-    <section class="hero">
-      <div class="hero-eyebrow">Hackathon Portfolio</div>
-      <h1 class="hero-title">Engineering Solutions</h1>
-      <p class="hero-desc">A collection of custom builds, AI architectures, and sandbox prototypes submitted to global developer hackathons.</p>
-    </section>
-
-    <!-- Hackathons Timeline Grid -->
-    <section class="portfolio-grid">
-
-      <!-- Entry 1: AMD Hackathon -->
-      <div class="hackathon-card">
-        <div class="card-glow"></div>
+    <div class="hack-list">
+      
+      <!-- ENTRY 1: AMD Hackathon -->
+      <div class="hack-item">
+        <div class="hack-meta">
+          <span>July 2026</span>
+          <span>•</span>
+          <span>AMD Developer Hackathon: ACT II</span>
+          <span>•</span>
+          <span class="badge b-submitted">Submitted</span>
+        </div>
         
-        <div class="card-header">
-          <div class="card-meta">
-            <h3 class="hackathon-title">AMD Developer Hackathon: ACT II</h3>
-            <span class="hackathon-date">July 2026 · Unicorn Track (Startup & Innovation)</span>
-          </div>
-          <span class="status-badge">Submitted</span>
-        </div>
+        <div class="project-title">SecurePay AI 🛡️</div>
+        
+        <p class="hack-desc">
+          SecurePay AI is a disposable payment tokenization system and hardware-accelerated fraud detection engine built for the <strong>Unicorn Track</strong>. It eliminates the risk of consumer credit card theft in database breaches by issuing merchant-locked, spend-capped virtual card tokens.
+        </p>
 
-        <div class="project-section">
-          <h2 class="project-name">SecurePay AI 🛡️</h2>
-          <p class="project-desc">
-            SecurePay AI is an enterprise-grade disposable tokenization and fraud prevention ecosystem built to eliminate credit card data leaks. It issues merchant-locked, spend-capped virtual card tokens and runs real-time transaction risk scoring with plain-language explanation heuristics.
-          </p>
-
-          <div class="features-title">Core Features & Architecture</div>
-          <ul class="features-list">
-            <li class="feature-item">
-              <span class="feature-check">✓</span>
-              <span><strong>Zero-Leak Card Vault:</strong> Encrypts raw primary card details offline with AES-256-GCM. Merchants only touch disposable virtual tokens.</span>
-            </li>
-            <li class="feature-item">
-              <span class="feature-check">✓</span>
-              <span><strong>Explainable AI Analyst:</strong> DeepSeek V4 / Gemma 2 hosted on AMD Instinct hardware writes natural-language audit reasoning for security clearances.</span>
-            </li>
-            <li class="feature-item">
-              <span class="feature-check">✓</span>
-              <span><strong>Subscription Kill Switch:</strong> One-click instant active subscription revocation that invalidates downstream Redis token configurations.</span>
-            </li>
-            <li class="feature-item">
-              <span class="feature-check">✓</span>
-              <span><strong>Sandbox Guided Tour Mode:</strong> An interactive, 5-step checkout console designed to easily walk judges through complex token flows.</span>
-            </li>
-          </ul>
-        </div>
+        <ul class="features-list">
+          <li class="feature-item">
+            <span class="feature-check">✓</span>
+            <span><strong>Zero-Leak Card Vault:</strong> Encrypts raw card numbers offline (AES-256-GCM) so merchants only touch single-use virtual tokens.</span>
+          </li>
+          <li class="feature-item">
+            <span class="feature-check">✓</span>
+            <span><strong>Explainable AI scoring:</strong> DeepSeek V4 Pro accelerated on AMD Instinct™ MI300X cloud clusters writes plain-text reasons for transaction approvals.</span>
+          </li>
+          <li class="feature-item">
+            <span class="feature-check">✓</span>
+            <span><strong>Active Revocation Kill Switch:</strong> Allows users to instantly invalidate token credentials in Redis to block future merchant subscription charges.</span>
+          </li>
+          <li class="feature-item">
+            <span class="feature-check">✓</span>
+            <span><strong>Interactive Sandbox Console:</strong> A 5-step guided tour mode allowing judges to quickly simulate checkouts and test engine heuristics.</span>
+          </li>
+        </ul>
 
         <div class="tech-stack">
           <span class="tech-chip">FastAPI</span>
-          <span class="tech-chip">React (Vite)</span>
-          <span class="tech-chip">Redis Cache</span>
-          <span class="tech-chip">SQLite (Encrypted)</span>
-          <span class="tech-chip">Docker Compose</span>
-          <span class="tech-chip">AMD ROCm 7.2</span>
-          <span class="tech-chip">DeepSeek V4 Pro</span>
+          <span class="tech-chip">React</span>
+          <span class="tech-chip">Redis</span>
+          <span class="tech-chip">SQLite (Crypt)</span>
+          <span class="tech-chip">Docker</span>
+          <span class="tech-chip">AMD Instinct MI300X</span>
+          <span class="tech-chip">ROCm 7.2</span>
           <span class="tech-chip">Fireworks AI</span>
         </div>
 
-        <div class="card-actions">
-          <a href="https://github.com/HamzaNasiem/securepay-ai" target="_blank" class="btn btn-primary">
-            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: middle;">
-              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-            </svg>
-            GitHub Repository
+        <div class="hack-links">
+          <a href="https://github.com/HamzaNasiem/securepay-ai" target="_blank" rel="noopener noreferrer" class="hack-link-btn">
+            GitHub Repo ↗
           </a>
-          <a href="https://github.com/HamzaNasiem/securepay-ai" class="btn btn-secondary">
-            Project Architecture Docs
+          <a href="https://github.com/HamzaNasiem/securepay-ai#readme" target="_blank" rel="noopener noreferrer" class="hack-link-btn">
+            Architecture Docs ↗
           </a>
         </div>
       </div>
 
-      <!-- Future placeholder card -->
-      <div class="empty-card">
-        <div class="empty-title">More Hackathons Coming Soon</div>
-        <p class="empty-desc">Future developer submissions, local telemetry tools, and AI prototypes will be documented here.</p>
+      <!-- ENTRY 2: Google DeepMind Hackathon -->
+      <div class="hack-item">
+        <div class="hack-meta">
+          <span>June 2025</span>
+          <span>•</span>
+          <span>Gemini 3 Global Hackathon</span>
+          <span>•</span>
+          <span class="badge b-completed">Completed</span>
+        </div>
+        
+        <div class="project-title">PulseScriptAI 🧠</div>
+        
+        <p class="hack-desc">
+          A clinical translation assistant and drug interaction validation workflow. Built to help healthcare practitioners summarize complex medical records, parse multi-lingual prescription transcripts, and highlight potential adverse interactions using structured JSON schema configurations.
+        </p>
+
+        <div class="tech-stack">
+          <span class="tech-chip">Python</span>
+          <span class="tech-chip">Gemini 3.5 API</span>
+          <span class="tech-chip">FastAPI</span>
+          <span class="tech-chip">Tailwind CSS</span>
+        </div>
       </div>
 
-    </section>
+    </div>
+  </section>
 
-    <!-- Footer -->
-    <footer>
-      <div class="social-links">
-        <a href="https://linkedin.com/in/hamzanasiem" target="_blank" class="social-link">LinkedIn</a>
-        <a href="https://github.com/HamzaNasiem" target="_blank" class="social-link">GitHub</a>
-        <a href="https://imhamza.com" class="social-link">Personal Website</a>
-      </div>
-      <div class="copyright">
-        &copy; 2026 Hamza Nasiem. Built for portfolio routing at imhamza.com/hackathon.
-      </div>
-    </footer>
-  </div>
+  <!-- 02 · FUTURE -->
+  <section id="upcoming" class="fade-in visible">
+    <div class="sh">
+      <h2 class="sh-label">02 · Pipeline</h2>
+    </div>
+    
+    <div class="upcoming-box">
+      <div class="upcoming-title">More coming soon</div>
+      <p class="upcoming-desc">Future submissions and optimization projects will be logged here in real-time.</p>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="ft-links">
+      <a href="mailto:hamza@bytelytic.com">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Email
+      </a>
+      <a href="https://github.com/HamzaNasiem" target="_blank" rel="noopener noreferrer">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        GitHub
+      </a>
+      <a href="https://linkedin.com/in/hamzanasiem" target="_blank" rel="noopener noreferrer">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+        LinkedIn
+      </a>
+    </div>
+  </footer>
+
+</main>
+
+<script>
+  // ── LIVE CLOCK SCRIPT (Match imhamza.com logic) ──
+  function updateClock() {
+    try {
+      const now = new Date();
+      // Format options to match PKT clock representation
+      const options = {
+        timeZone: 'Asia/Karachi',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      };
+      const formatter = new Intl.DateTimeFormat('en-US', options);
+      document.getElementById('top-clock').textContent = formatter.format(now) + ' PKT';
+    } catch (e) {
+      // Fallback
+      document.getElementById('top-clock').textContent = new Date().toLocaleTimeString() + ' PKT';
+    }
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // ── FADE-IN SCROLL OBSERVER ──
+  const observerOptions = {
+    threshold: 0.15
+  };
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, observerOptions);
+
+  document.querySelectorAll('.fade-in').forEach(el => {
+    observer.observe(el);
+  });
+</script>
 
 </body>
 </html>
