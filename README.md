@@ -4,40 +4,46 @@
 [![ROCm 7.2](https://img.shields.io/badge/Platform-ROCm%207.2-blue?style=for-the-badge&logo=amd)](https://rocm.docs.amd.com/)
 [![Docker Multi-Stage](https://img.shields.io/badge/Build-Docker%20Multi--Stage-blue?style=for-the-badge&logo=docker)](https://www.docker.com/)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-green?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![GitHub Actions CI](https://img.shields.io/github/actions/workflow/status/HamzaNasiem/securepay-ai/docker-publish.yml?branch=main&style=for-the-badge&logo=github-actions)](https://github.com/HamzaNasiem/securepay-ai/actions)
 
-SecurePay AI is a world-class, hardware-accelerated fraud prevention engine and disposable tokenization platform. Built for the **AMD Developer Hackathon: ACT II (Unicorn Track)**, the platform eliminates credit card leaks by issuing single-use, merchant-locked, and amount-capped virtual tokens, evaluated in real-time by an Explainable AI Agent running on **AMD Instinct MI300X accelerators**.
+SecurePay AI is a hardware-accelerated fraud prevention engine and decentralized payment tokenization platform built for the **AMD Developer Hackathon: ACT II (Unicorn Track)**. 
 
----
-
-## 🚀 Key Features
-
-*   **🔒 Zero-Leak Tokenization:** Real Primary Account Numbers (PAN) are encrypted and stored in an offline vault. The merchant only receives a disposable, merchant-locked virtual card token.
-*   **🧠 Explainable AI Security:** Powered by DeepSeek V4 Pro / Gemma 2 hosted on AMD hardware, the engine analyzes transactions and outputs plain-language security reasoning explaining why a payment was approved, declined, or held for verification.
-*   **⚡ Real-Time AMD Telemetry:** Tracks processing latencies, GPU performance metrics, and cost savings directly on the dashboard.
-*   **🛑 Single-Click Kill Switch:** Users can instantly revoke or destroy any merchant token from the Active Subscriptions panel to immediately stop future recurring charges.
+The platform eliminates the risk of credit card leaks in data breaches by issuing single-use, merchant-locked, and amount-capped virtual tokens. Every transaction is evaluated in real-time by an Explainable AI (XAI) security analyst model accelerated by **AMD Instinct™ MI300X GPUs**.
 
 ---
 
-## 🏗️ System Architecture
+## 🚀 Key Value Propositions
 
-SecurePay AI is built as a highly optimized containerized microservice architecture:
+*   **🔒 Zero-Leak Vault Architecture (PCI-DSS Ready):** Real Primary Account Numbers (PAN), CVVs, and Expiries are encrypted with AES-256-GCM and stored inside an isolated offline SQLite Vault. They never cross the merchant's network boundaries.
+*   **🧠 Explainable AI Risk Engine:** Powered by DeepSeek V4 Pro / Gemma 2 hosted on AMD hardware. Instead of returning opaque risk scores, the engine generates plain-language, audit-ready security explanations detailing the precise risk heuristics that triggered the decision.
+*   **💡 Interactive Hackathon Tour Mode:** Built directly into the landing interface. An step-by-step guided tour panel walks judges through the entire token generation, payment simulation, and real-time AI settlement process with single-click actions.
+*   **⚡ Real-Time AMD Telemetry Dashboard:** Includes live tracking of GPU processing latency (ms), token lifecycle states, and local currency cost-saving metrics.
+*   **🛑 Subscription Kill Switch:** Users can instantly revoke or destroy any merchant token from the Active Subscriptions panel to immediately stop future recurring charges.
+
+---
+
+## 🏗️ System Architecture & Data Flow
+
+SecurePay AI segregates transactional data from the cardholder vault to ensure absolute security:
 
 ```
                   ┌────────────────────────────────────────┐
-                  │          React Frontend (Vite)         │
-                  │              (Port 3000)               │
+                  │        React Frontend (Port 3000)      │
+                  │   - 💡 Interactive Tour Console        │
+                  │   - 📊 AMD GPU Telemetry Analytics     │
                   └───────────────────┬────────────────────┘
                                       │
                                       ▼
                   ┌────────────────────────────────────────┐
-                  │            FastAPI Backend             │
-                  │              (Port 8080)               │
+                  │       FastAPI Backend (Port 8080)      │
+                  │   - Token Orchestrator                 │
+                  │   - Risk Decision Engine               │
                   └──────────┬──────────────────┬──────────┘
                              │                  │
                              ▼                  ▼
        ┌───────────────────────────┐      ┌───────────────────────────┐
-       │   Encrypted SQLite Vault  │      │     Redis Token Store     │
-       │      (AES-256-GCM)        │      │       (Cache/TTL)         │
+       │   Encrypted SQLite Vault  │      │   Redis Cache Token Store │
+       │     (AES-256-GCM Crypt)   │      │    (Status, Limits, TTL)  │
        └───────────────────────────┘      └───────────────────────────┘
                                                 │
                                                 ▼
@@ -49,22 +55,21 @@ SecurePay AI is built as a highly optimized containerized microservice architect
                                     └───────────────────────┘
 ```
 
-*   **Prototyping Environment:** Prototyped and evaluated locally on **AMD AI Notebooks** (ROCm 7.2 + vLLM). See the prototyping notebook [`amd_rocm_vllm_evaluation.ipynb`](./amd_rocm_vllm_evaluation.ipynb) for detailed setup.
-*   **Production Inference:** Scaled through Fireworks AI Serverless API routing to AMD MI300X GPU clusters.
-*   **Data Isolation:** Real credit card details are encrypted in the SQLite vault with AES-256-GCM and never leave the local environment.
+*   **Prototyping & Benchmarking:** Evaluated and prototyped locally on **AMD AI Cloud Notebooks** running ROCm 7.2 and vLLM. Refer to our evaluation notebook [`amd_rocm_vllm_evaluation.ipynb`](./amd_rocm_vllm_evaluation.ipynb) for local latency benchmarks.
+*   **Production Deployment:** Scaled globally by routing inference calls to AMD Instinct MI300X GPU clusters via Fireworks AI Serverless APIs (configured for near-deterministic results).
 
 ---
 
-## 🐳 Running with Docker (World-Class Containerization)
+## 🐳 Quick Start (Running with Docker)
 
-The stack is fully containerized using optimized, multi-stage Docker builds to keep image sizes minimal and ensure production-grade security.
+The stack is fully containerized using multi-stage, production-ready Docker builds.
 
 ### 1. Configure Environment Variables
 Create a `.env` file in the root directory:
 ```bash
 cp .env.example .env
 ```
-Update `.env` with your Fireworks API key and configurations:
+Update `.env` with your API keys:
 ```ini
 FIREWORKS_API_KEY=your_fireworks_api_key
 FIREWORKS_BASE_URL=https://api.fireworks.ai/inference/v1
@@ -76,16 +81,16 @@ FRONTEND_ORIGIN=http://localhost:3000
 ```
 
 ### 2. Launch the Stack
-You can start the project in two ways:
+Select one of the options below to start the services:
 
 #### Option A: Pull Pre-built Registry Images (Fastest ⚡)
-Run the application instantly without building files locally. The images are pre-compiled and served directly from GitHub Container Registry (GHCR):
+Run the application instantly without compiling files locally. The images are pre-compiled and pulled directly from GitHub Container Registry (GHCR):
 ```bash
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
-#### Option B: Build and Run Locally
-Build and compile the multi-stage images from scratch:
+#### Option B: Build and Run Locally from Source
+Compile the multi-stage Dockerfiles locally:
 ```bash
 docker-compose up --build -d
 ```
@@ -93,60 +98,69 @@ docker-compose up --build -d
 Once started, the services will be live at:
 *   **React Frontend:** [http://localhost:3000](http://localhost:3000)
 *   **FastAPI Backend:** [http://localhost:8080](http://localhost:8080)
-*   **Interactive API Docs:** [http://localhost:8080/docs](http://localhost:8080/docs)
+*   **Interactive Swagger API Docs:** [http://localhost:8080/docs](http://localhost:8080/docs)
 
 ---
 
-## 📦 Manual Registry Publishing (Optional)
+## 🧪 Testing the Guided Playground (Walkthrough)
 
-If you want to manually build and push images to your own Docker registry (like Docker Hub) instead of using our automated GitHub Actions workflow:
+Open **[http://localhost:3000](http://localhost:3000)** and follow the **Interactive Tour Panel**:
 
-```bash
-# 1. Log in to your registry
-docker login
-
-# 2. Build and tag optimized backend image
-docker build -t your-username/securepay-backend:latest -f Dockerfile.backend .
-
-# 3. Build and tag optimized frontend image (uses Nginx serve-stage)
-docker build -t your-username/securepay-frontend:latest -f Dockerfile.frontend .
-
-# 4. Push images to registry
-docker push your-username/securepay-backend:latest
-docker push your-username/securepay-frontend:latest
-```
+1.  **Select Scenario:** Auto-select the **Netflix** scenario (a low-risk recurring subscription of 1,200 PKR).
+2.  **Generate Token:** Issues a 16-digit Luhn-valid card token locked to Netflix and capped at 1,200 PKR.
+3.  **Send to Checkout:** Simulates the checkout screen. Observe that the merchant only receives the token—the real card numbers are entirely missing from their request payload!
+4.  **Run AI Risk Analysis:** The backend calls DeepSeek V4 (running on AMD Instinct GPUs) to verify metadata (device, location, token age, limits) and outputs the approved transaction response with security reasoning.
+5.  **Risk Dashboard & Kill Switch:** Switch to the **Risk Dashboard** tab. Run a mock **Netflix Server Breach**. You will see that the attacker gets $0 value because the token is merchant-locked and expired. Click the **Destroy Token** button and confirm to instantly revoke the subscription!
+6.  **Agent Workspace:** Go to the Agent tab to chat with the AI Analyst in English or Urdu/Roman Urdu. You can negotiate override policies or ask why a transaction was flagged!
 
 ---
 
-## 🧪 Testing the End-to-End Flow
+## ⚙️ Explainable AI Risk Heuristics
 
-### Interactive UI Walkthrough
-1.  Open **[http://localhost:3000](http://localhost:3000)**.
-2.  Click **"Enter Demo — Skip Login"** to bypass auth instantly.
-3.  Choose a merchant preset (e.g. **Netflix** for low-risk, or **CryptoBazaar** for high-risk simulation).
-4.  Click **"Generate secure token"** to issue a merchant-locked, capped card token.
-5.  Click **"Send to checkout"** to view what the merchant receives (note that the real card number is entirely missing!).
-6.  Click **"Run AI Risk Analysis on AMD Hardware"** to evaluate the risk score and read the plain-language explanation generated by the AMD MI300X GPU.
-7.  Click **"Open Agent Workspace"** to enter the security terminal and interactively query the AI agent.
+The DeepSeek V4 fraud model evaluates incoming transactions against the following security matrix:
 
-### Automated API Validation Script
-Run the automated flow scripts to test the API endpoints locally:
-
-*   **Linux / macOS:**
-    ```bash
-    chmod +x test_flow.sh
-    ./test_flow.sh
-    ```
-*   **Windows:**
-    ```powershell
-    ./test_flow.ps1
-    ```
+| Heuristic Rule | Parameter Checked | Risk Action / Penalty |
+| :--- | :--- | :--- |
+| **Micro-Transaction Exemption** | `amount` < 500 PKR | Capped at 30 Risk Score (Auto-Approve to minimize user friction) |
+| **Merchant Category Risk Index** | `merchant_category` (e.g. Crypto) | High Risk base score (+40 Penalty) |
+| **Velocity & History** | `past_transactions_with_merchant` | Low history + high value (+30 Penalty), Repeat history (-20 Credit) |
+| **Context Mismatch Penalty** | `device_known` AND `location_match` | Both mismatch triggers a massive fraud warning (+60 Penalty) |
+| **Token Age Anomaly** | `token_age_seconds` < 2s or > 600s | Potential bot script or session hijack (+25 Penalty) |
 
 ---
 
-## 💻 Technical Stack
+## 📋 API Reference
 
-*   **Frontend:** React (Vite), Tailwind CSS, Lucide Icons, HTML5, Nginx.
-*   **Backend:** FastAPI, Python 3.11, Uvicorn, SQLite (Vault).
-*   **Cache & Session State:** Redis 7.
-*   **Hardware Acceleration & AI Core:** AMD Instinct MI300X accelerators running ROCm 7.2 (via Fireworks AI).
+### 1. Generate Token
+`POST /token/generate`
+*   **Input:** `{"merchant": "Netflix", "amount": 1200.0, "currency": "PKR", "ttl_seconds": 300}`
+*   **Output:** Generates a Luhn-compliant virtual card token and saves it in Redis and the SQLite vault.
+
+### 2. Simulate Merchant Checkout
+`POST /merchant/simulate`
+*   **Input:** `{"token": "4539...", "amount": 1200.0, "merchant_name": "Netflix", "metadata": {}}`
+*   **Output:** Returns a receipt confirming that no real card data (PAN, CVV, Expiry) was received.
+
+### 3. Settle Transaction
+`POST /pay`
+*   **Input:** Settles the token, runs the AMD-accelerated AI fraud risk assessment, and returns approval or decline decisions.
+
+### 4. Revoke Token
+`POST /kill-token`
+*   **Input:** `{"token": "4539..."}`
+*   **Output:** Invalidates the token in Redis. Subsequent settlement attempts will be rejected.
+
+### 5. Chat with Agent
+`POST /agent/chat`
+*   **Input:** `{"token": "4539...", "transaction_id": "txn_...", "message": "update krdo"}`
+*   **Output:** Negotiates overrides or limit increases with the AI Security Agent.
+
+---
+
+## 💻 Tech Stack
+
+*   **Frontend:** React (Vite), CSS3, Lucide Icons, Nginx.
+*   **Backend:** FastAPI, Python 3.11, Uvicorn, SQLite (Encrypted Vault).
+*   **Session Cache:** Redis 7 (Alpine).
+*   **CI/CD Pipeline:** GitHub Actions.
+*   **AI Infrastructure:** AMD Instinct™ MI300X GPUs via Fireworks AI Cloud / ROCm 7.2 + vLLM.
