@@ -41,3 +41,8 @@ Thumbs.db
 .vscode/
 *.suo
 *.sw?
+
+# Redis dumps
+dump.rdb
+*.rdb
+

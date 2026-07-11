@@ -1,6 +1,56 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { generateToken, pay, simulateMerchant, updateTokenStatus, updateTokenLimit } from './api';
 
+const ScrambleText = ({ text }) => {
+  const [display, setDisplay] = useState('');
+  
+  useEffect(() => {
+    if (!text) return;
+    const chars = '0123456789*';
+    let iter = 0;
+    const interval = setInterval(() => {
+      setDisplay(text.split('').map((c, i) => {
+        if (c === ' ') return ' ';
+        if (i < iter) return c;
+        return chars[Math.floor(Math.random() * chars.length)];
+      }).join(''));
+      
+      if (iter >= text.length) clearInterval(interval);
+      iter += 1/3; // Speed of unscrambling
+    }, 30);
+    return () => clearInterval(interval);
+  }, [text]);
+  
+  return <span>{display || text}</span>;
+};
+
+const AnimatedNumber = ({ value }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    if (value === null || value === undefined) return;
+    let start = 0;
+    const duration = 1000;
+    const stepTime = 20;
+    const steps = duration / stepTime;
+    const increment = value / steps;
+    
+    const timer = setInterval(() => {
+      start += increment;
+      if (start >= value) {
+        setDisplayValue(value);
+        clearInterval(timer);
+      } else {
+        setDisplayValue(Math.floor(start));
+      }
+    }, stepTime);
+    
+    return () => clearInterval(timer);
+  }, [value]);
+
+  return <span>{displayValue}</span>;
+};
+
 const playSound = (type) => {
   try {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -190,6 +240,8 @@ export default function Checkout({ onTransactionComplete }) {
   const [showRawToken, setShowRawToken] = useState(false);
   const [customName, setCustomName] = useState('My Store');
   const [customAmount, setCustomAmount] = useState('1000');
+  const [customDeviceKnown, setCustomDeviceKnown] = useState(false);
+  const [customLocationMatch, setCustomLocationMatch] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const cardRef = useRef(null);
 
@@ -305,9 +357,11 @@ export default function Checkout({ onTransactionComplete }) {
     try {
       const targetName = merchant.name === 'Custom Merchant' ? customName : merchant.name;
       const targetAmount = merchant.name === 'Custom Merchant' ? Number(customAmount) : merchant.amount;
+      const targetDevice = merchant.name === 'Custom Merchant' ? customDeviceKnown : merchant.device_known;
+      const targetLocation = merchant.name === 'Custom Merchant' ? customLocationMatch : merchant.location_match;
       const sim = await simulateMerchant(tokenData.token, targetAmount, targetName, {
-        device_known: merchant.device_known,
-        location_match: merchant.location_match,
+        device_known: targetDevice,
+        location_match: targetLocation,
         past_transactions_with_merchant: merchant.past_transactions,
         merchant_category: merchant.category,
       });
@@ -325,9 +379,11 @@ export default function Checkout({ onTransactionComplete }) {
     try {
       const targetName = merchant.name === 'Custom Merchant' ? customName : merchant.name;
       const targetAmount = merchant.name === 'Custom Merchant' ? Number(customAmount) : merchant.amount;
+      const targetDevice = merchant.name === 'Custom Merchant' ? customDeviceKnown : merchant.device_known;
+      const targetLocation = merchant.name === 'Custom Merchant' ? customLocationMatch : merchant.location_match;
       const res = await pay(tokenData.token, targetName, targetAmount, {
-        device_known: merchant.device_known,
-        location_match: merchant.location_match,
+        device_known: targetDevice,
+        location_match: targetLocation,
         past_transactions_with_merchant: merchant.past_transactions,
         merchant_category: merchant.category,
       });
@@ -342,8 +398,8 @@ export default function Checkout({ onTransactionComplete }) {
         transaction_id: res.transaction_id,
         token: tokenData.token,
         token_masked: tokenData.token_masked,
-        merchant: merchant.name,
-        amount: merchant.amount,
+        merchant: targetName,
+        amount: targetAmount,
         decision: res.decision,
         explanation: res.explanation
       });
@@ -361,8 +417,8 @@ export default function Checkout({ onTransactionComplete }) {
           transaction_id: payload.transaction_id,
           token: tokenData.token,
           token_masked: tokenData.token_masked,
-          merchant: merchant.name,
-          amount: merchant.amount,
+          merchant: targetName,
+          amount: targetAmount,
           decision: payload.decision,
           explanation: payload.explanation
         });
@@ -380,6 +436,7 @@ export default function Checkout({ onTransactionComplete }) {
     const current = order.indexOf(step);
     const target = order.indexOf(s);
     if (step === 'idle') return 'idle';
+    if (step === 'done') return 'done';
     if (current > target) return 'done';
     if (current === target) return 'active';
     return 'idle';
@@ -459,6 +516,26 @@ export default function Checkout({ onTransactionComplete }) {
                   onChange={e => setCustomAmount(e.target.value)}
                   className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
                 />
+              </div>
+              <div className="flex items-center gap-4 pt-2">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-ink-2">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 rounded border-border text-accent focus:ring-accent cursor-pointer"
+                    checked={customDeviceKnown}
+                    onChange={(e) => setCustomDeviceKnown(e.target.checked)}
+                  />
+                  Device Known
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-ink-2">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 rounded border-border text-accent focus:ring-accent cursor-pointer"
+                    checked={customLocationMatch}
+                    onChange={(e) => setCustomLocationMatch(e.target.checked)}
+                  />
+                  Location Matched
+                </label>
               </div>
             </div>
           )}
@@ -564,8 +641,11 @@ export default function Checkout({ onTransactionComplete }) {
                 </div>
                 <div className="text-2xs font-mono text-ink-4 uppercase tracking-widest">SecurePay AI</div>
               </div>
+
               <div className="flex items-center justify-between font-mono text-xl text-white tracking-widest mb-5" style={{ transform: 'translateZ(40px)' }}>
-                <span>{showRawToken ? tokenData.token.match(/.{1,4}/g).join(' ') : tokenData.token_masked}</span>
+                <span>
+                  <ScrambleText text={showRawToken ? tokenData.token.match(/.{1,4}/g).join(' ') : tokenData.token_masked} />
+                </span>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     onClick={(e) => {
@@ -740,6 +820,17 @@ export default function Checkout({ onTransactionComplete }) {
               <span className="badge badge-neutral ml-auto">What the merchant sees</span>
             </div>
 
+            {/* Security callout */}
+            <div className="flex items-start gap-3 p-3 bg-ok-muted border border-ok-border rounded-lg mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-ok shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+              </svg>
+              <div>
+                <p className="text-xs font-semibold text-ok">Zero card data leaked</p>
+                <p className="text-2xs text-ink-2 mt-0.5">The merchant's server only received a disposable token. Even if they are breached tomorrow, your real card number is <strong>never exposed</strong>.</p>
+              </div>
+            </div>
+
             <div className="bg-surface-2 border border-border rounded-card overflow-hidden mb-4">
               <div className="px-4 py-2.5 border-b border-border bg-surface-3 flex items-center gap-2">
                 <div className="flex gap-1.5">
@@ -780,10 +871,10 @@ export default function Checkout({ onTransactionComplete }) {
             >
               {loading ? <span className="spinner" /> : (
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                 </svg>
               )}
-              Run AI risk analysis
+              Run AI Risk Analysis on AMD Hardware
             </button>
           </div>
         )}
@@ -829,7 +920,7 @@ export default function Checkout({ onTransactionComplete }) {
                       payResult.risk_score < 30 ? 'badge-ok' :
                       payResult.risk_score < 70 ? 'badge-warn' : 'badge-bad'
                     }`}>
-                      Risk {payResult.risk_score}/100
+                      Risk <AnimatedNumber value={payResult.risk_score} />/100
                     </span>
                   )}
                 </div>
@@ -842,7 +933,7 @@ export default function Checkout({ onTransactionComplete }) {
               <div className="mb-4">
                 <div className="flex justify-between text-2xs text-ink-3 mb-1.5">
                   <span>AI risk score</span>
-                  <span className="font-mono font-medium">{payResult.risk_score} / 100</span>
+                  <span className="font-mono font-medium"><AnimatedNumber value={payResult.risk_score} /> / 100</span>
                 </div>
                 <div className="progress-bar">
                   <div
@@ -856,13 +947,50 @@ export default function Checkout({ onTransactionComplete }) {
               </div>
             )}
 
-            {/* Gemma explanation */}
-            <div className="bg-surface-2 border border-border rounded-card p-4">
+            {/* AI explanation */}
+            <div className="bg-surface-2 border border-border rounded-card p-4 mb-4">
               <p className="text-2xs font-semibold text-ink-3 uppercase tracking-widest mb-2">
                 AI Risk Explanation
               </p>
               <p className="text-sm text-ink-2 leading-relaxed">{payResult.explanation}</p>
             </div>
+
+            {/* Next Step CTA */}
+            {(payResult.decision === 'step_up' || payResult.decision === 'decline') && (
+              <div className="flex items-start gap-3 p-4 bg-warn-muted border border-warn-border rounded-card">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-warn shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-warn">Human review required</p>
+                  <p className="text-2xs text-ink-2 mt-0.5">The AI flagged this transaction. Open the Agent Workspace to chat with the AI analyst and override or confirm the decision.</p>
+                </div>
+                <button
+                  onClick={() => { window.location.hash = '#/agent'; }}
+                  className="btn-primary py-2 px-4 text-xs shrink-0"
+                >
+                  Open Agent Workspace →
+                </button>
+              </div>
+            )}
+
+            {payResult.decision === 'approve' && (
+              <div className="flex items-center gap-3 p-4 bg-ok-muted border border-ok-border rounded-card">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-ok shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-ok">Transaction authorized by AI</p>
+                  <p className="text-2xs text-ink-2 mt-0.5">View the live Risk Dashboard to see token activity logs and system telemetry.</p>
+                </div>
+                <button
+                  onClick={() => { window.location.hash = '#/dashboard'; }}
+                  className="btn-secondary py-2 px-4 text-xs shrink-0"
+                >
+                  View Dashboard →
+                </button>
+              </div>
+            )}
           </div>
         )}
 

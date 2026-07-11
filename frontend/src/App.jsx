@@ -114,27 +114,28 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-surface-2">
+    <div className="min-h-screen flex flex-col bg-surface-2 overflow-x-hidden w-full">
 
       {/* Top navigation */}
-      <header className="bg-surface border-b border-border sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
+      <header className="bg-surface border-b border-border sticky top-0 z-50 w-full">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 md:py-0 md:h-16 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6">
 
           {/* Wordmark */}
-          <a href="#" className="flex items-center gap-2.5 shrink-0">
+          <a href="#" className="flex items-center gap-2.5 shrink-0 self-start md:self-auto">
             <div className="w-8 h-8 bg-accent rounded-btn flex items-center justify-center text-white">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" fill="currentColor" fillOpacity="0.2" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+                <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
             <span className="text-sm font-semibold text-ink tracking-tight">SecurePay AI</span>
           </a>
 
           {/* Tab nav */}
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center gap-1 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-hide">
             <button
               onClick={() => window.location.hash = '#/checkout'}
-              className={`px-4 py-2 text-sm font-medium rounded-btn transition-colors duration-150 ${
+              className={`px-4 py-2 text-sm font-medium rounded-btn transition-colors duration-150 shrink-0 ${
                 activeTab === 'checkout'
                   ? 'bg-surface-3 text-ink'
                   : 'text-ink-3 hover:text-ink hover:bg-surface-3'
@@ -144,7 +145,7 @@ export default function App() {
             </button>
             <button
               onClick={() => window.location.hash = '#/agent'}
-              className={`px-4 py-2 text-sm font-medium rounded-btn transition-colors duration-150 relative ${
+              className={`px-4 py-2 text-sm font-medium rounded-btn transition-colors duration-150 relative shrink-0 ${
                 activeTab === 'agent'
                   ? 'bg-surface-3 text-ink'
                   : 'text-ink-3 hover:text-ink hover:bg-surface-3'
@@ -157,21 +158,18 @@ export default function App() {
             </button>
             <button
               onClick={() => window.location.hash = '#/dashboard'}
-              className={`px-4 py-2 text-sm font-medium rounded-btn transition-colors duration-150 relative ${
+              className={`px-4 py-2 text-sm font-medium rounded-btn transition-colors duration-150 relative shrink-0 ${
                 activeTab === 'dashboard'
                   ? 'bg-surface-3 text-ink'
                   : 'text-ink-3 hover:text-ink hover:bg-surface-3'
               }`}
             >
               Risk Dashboard
-              {refreshTrigger > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-accent" />
-              )}
             </button>
           </nav>
 
           {/* Status indicators */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex flex-wrap justify-between md:justify-end items-center gap-3 shrink-0 w-full md:w-auto mt-1 md:mt-0">
             <div className="flex items-center gap-1.5 text-2xs font-medium">
               <span
                 className="live-dot"
@@ -181,7 +179,7 @@ export default function App() {
                 Redis {redisOk ? 'connected' : 'offline'}
               </span>
             </div>
-            <div className="w-px h-4 bg-border" />
+            <div className="w-px h-4 bg-border hidden sm:block" />
             <div className="hidden sm:flex items-center gap-1.5 text-2xs text-ink-3 font-mono">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
@@ -201,16 +199,16 @@ export default function App() {
 
       {/* Offline banner */}
       {healthStatus?.status === 'error' && (
-        <div className="bg-bad-muted border-b border-bad-border px-6 py-2.5 flex items-center justify-center gap-2 text-sm text-bad">
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <div className="bg-bad-muted border-b border-bad-border px-4 sm:px-6 py-2.5 flex items-center justify-center gap-2 text-sm text-bad w-full text-center">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 shrink-0 hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
           </svg>
-          Backend server is unreachable. Start the backend on port 8080 and refresh.
+          <span>Backend server is unreachable. Start the backend on port 8080 and refresh.</span>
         </div>
       )}
 
       {/* Page content */}
-      <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 overflow-hidden">
         <div style={{ display: activeTab === 'checkout' ? 'block' : 'none' }}>
           <Checkout onTransactionComplete={handleTransactionComplete} />
         </div>
@@ -223,14 +221,14 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-surface mt-auto">
-        <div className="max-w-6xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-2xs text-ink-3">
+      <footer className="border-t border-border bg-surface mt-auto w-full">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-2xs text-ink-3 text-center sm:text-left">
           <span>SecurePay AI - AMD Developer Hackathon Unicorn Track 2026</span>
-          <div className="flex items-center gap-4 font-mono">
+          <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-4 font-mono">
             <span>DeepSeek V4 Pro</span>
-            <span className="text-border">|</span>
+            <span className="text-border hidden sm:inline">|</span>
             <span>Fireworks AI</span>
-            <span className="text-border">|</span>
+            <span className="text-border hidden sm:inline">|</span>
             <span>FastAPI + Redis</span>
           </div>
         </div>

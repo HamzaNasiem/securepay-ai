@@ -245,7 +245,7 @@ def main() -> None:
 
     separator()
     print(f"\n  Seeding complete: {success} succeeded, {failed} failed")
-    print(f"  Dashboard: open http://localhost:5173 → Dashboard tab")
+    print(f"  Dashboard: open http://localhost:3000 → Dashboard tab")
     print(f"  API feed:  {BASE_URL}/transactions")
     print()
 

@@ -158,20 +158,43 @@ export default function Dashboard({ refreshTrigger }) {
     };
   }, [isSimulating]);
 
+  const [confirmKill, setConfirmKill] = useState({});
+  const [toastMsg, setToastMsg] = useState('');
+
+  const showToast = (msg) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(''), 3000);
+  };
+
   const handleKill = async (e, tx) => {
     e.stopPropagation();
-    if (!confirm('Revoke this token? Any future payment attempt with it will fail.')) return;
+    
+    // Inline confirmation logic (double-click within 3 seconds)
+    if (!confirmKill[tx.transaction_id]) {
+      setConfirmKill(prev => ({ ...prev, [tx.transaction_id]: true }));
+      // Auto-reset after 3 seconds
+      setTimeout(() => {
+        setConfirmKill(prev => ({ ...prev, [tx.transaction_id]: false }));
+      }, 3000);
+      return;
+    }
+
     const raw = getRawToken(tx.token_masked);
     if (!raw) {
-      alert('Raw token not found in this session - cannot revoke from this browser.');
+      showToast('Raw token not found in this session.');
       return;
     }
     setKilling(k => ({ ...k, [tx.transaction_id]: true }));
     try {
       await killToken(raw);
       await fetch(false);
-    } catch { alert('Failed to revoke token.'); }
-    finally { setKilling(k => ({ ...k, [tx.transaction_id]: false })); }
+      showToast(`Token for ${tx.merchant} destroyed successfully.`);
+    } catch { 
+      showToast('Failed to revoke token.'); 
+    } finally { 
+      setKilling(k => ({ ...k, [tx.transaction_id]: false })); 
+      setConfirmKill(prev => ({ ...prev, [tx.transaction_id]: false }));
+    }
   };
 
   const handleTriggerBreach = async () => {
@@ -303,9 +326,9 @@ export default function Dashboard({ refreshTrigger }) {
               <p className="text-2xs text-ink-3 font-mono">Hardware: AMD MI300X Accelerator · Platform: Fireworks AI Cloud</p>
             </div>
           </div>
-          <div className="flex items-center gap-4 shrink-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
             {latencies.length >= 2 && <LatencySparkline latencies={latencies} />}
-            <div className="grid grid-cols-3 gap-6 font-mono text-center md:text-right">
+            <div className="grid grid-cols-3 gap-3 sm:gap-6 font-mono text-left sm:text-right w-full sm:w-auto">
               <div>
                 <div className="text-2xs text-ink-3 font-sans font-medium uppercase tracking-wider">Avg Latency</div>
                 <div className="text-base font-bold text-accent">{hasMetrics ? `${avgLatency}ms` : '—'}</div>
@@ -408,14 +431,24 @@ export default function Dashboard({ refreshTrigger }) {
                     <button
                       onClick={(e) => handleKill(e, tx)}
                       disabled={isKilling}
-                      className="btn-primary bg-bad hover:bg-red-700 py-1.5 px-3 text-xs flex items-center gap-1.5"
+                      className={`btn-primary py-1.5 px-3 text-xs flex items-center gap-1.5 transition-all duration-200 ${
+                        confirmKill[tx.transaction_id] 
+                          ? 'bg-warn hover:bg-amber-700 text-white' 
+                          : 'bg-bad hover:bg-red-700 text-white'
+                      }`}
                     >
-                      {isKilling ? <span className="spinner" style={{width: 14, height: 14}} /> : (
+                      {isKilling ? (
+                        <span className="spinner" style={{width: 14, height: 14}} />
+                      ) : confirmKill[tx.transaction_id] ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                      ) : (
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       )}
-                      Destroy Token
+                      {confirmKill[tx.transaction_id] ? 'Confirm Destroy?' : 'Destroy Token'}
                     </button>
                   </div>
                 </div>
@@ -474,7 +507,7 @@ export default function Dashboard({ refreshTrigger }) {
                 const isKilling = !!killing[tx.transaction_id];
 
                 return (
-                  <div key={tx.transaction_id}>
+                  <div key={tx.transaction_id} className="row-in">
                     <div
                       onClick={() => setExpanded(isExpanded ? null : tx.transaction_id)}
                       className={`grid grid-cols-12 gap-4 px-5 py-4 items-center cursor-pointer transition-colors duration-100 ${
@@ -657,6 +690,11 @@ export default function Dashboard({ refreshTrigger }) {
               )}
             </div>
           </div>
+        </div>
+      )}
+      {toastMsg && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-ink-2 text-white px-6 py-3 rounded-card text-sm font-medium shadow-xl z-50 animate-in fade-in slide-in-from-bottom-4">
+          {toastMsg}
         </div>
       )}
     </div>

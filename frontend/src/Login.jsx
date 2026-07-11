@@ -11,6 +11,17 @@ export default function Login({ onLogin }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const handleDemoLogin = (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    // Auto-fill with demo credentials and log in
+    setTimeout(() => {
+      localStorage.setItem('isLoggedIn', 'true');
+      onLogin();
+    }, 800);
+  };
+
   const handleAuth = (e) => {
     e.preventDefault();
     setError('');
@@ -26,11 +37,10 @@ export default function Login({ onLogin }) {
           localStorage.setItem('isLoggedIn', 'true');
           onLogin();
         } else {
-          setError('Invalid email address or password. Try admin@securepay.ai / password123');
+          setError('Invalid credentials. Use the Demo Access button below to skip login.');
           setLoading(false);
         }
       } else {
-        // Registering
         if (password.length < 6) {
           setError('Password must be at least 6 characters long.');
           setLoading(false);
@@ -62,8 +72,9 @@ export default function Login({ onLogin }) {
       <div className="w-full max-w-md bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-md relative z-10">
         <div className="flex justify-center mb-6">
           <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center shadow-lg shadow-accent/20">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-white">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" fill="currentColor" fillOpacity="0.2" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+              <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
         </div>
@@ -187,9 +198,35 @@ export default function Login({ onLogin }) {
             ) : activeTab === 'login' ? "Sign In securely" : "Create secure account"}
           </button>
         </form>
-        
-        <div className="mt-8 pt-6 border-t border-white/10 text-center">
-          <p className="text-xs text-ink-4">Powered by <span className="font-semibold text-white">AMD Infrastructure</span> & <span className="font-semibold text-white">DeepSeek V4 Pro</span></p>
+
+        {/* Demo Access Block */}
+        <div className="mt-4 p-4 bg-white/5 border border-white/10 rounded-xl">
+          <p className="text-xs text-ink-4 text-center mb-3 font-medium uppercase tracking-wider">
+            ⚡ Hackathon Demo Access
+          </p>
+          <button
+            onClick={handleDemoLogin}
+            disabled={loading}
+            className="w-full bg-white/10 hover:bg-white/15 border border-white/20 text-white font-semibold py-2.5 rounded-lg transition-all duration-200 flex justify-center items-center gap-2 text-sm"
+          >
+            {loading ? (
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                </svg>
+                Enter Demo — Skip Login
+              </>
+            )}
+          </button>
+          <p className="text-2xs text-ink-5 text-center mt-2">
+            Or use: <span className="text-white/60 font-mono">admin@securepay.ai</span> / <span className="text-white/60 font-mono">password123</span>
+          </p>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-white/10 text-center">
+          <p className="text-xs text-ink-4">Powered by <span className="font-semibold text-white">AMD Infrastructure</span> &amp; <span className="font-semibold text-white">DeepSeek V4 Pro</span></p>
         </div>
       </div>
     </div>

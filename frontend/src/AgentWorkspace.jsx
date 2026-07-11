@@ -13,8 +13,13 @@ export default function AgentWorkspace({ lastTxn, onStatusUpdated }) {
 
   useEffect(() => {
     if (lastTxn) {
-      // Set initial agent greeting based on the blocked transaction status
-      const greeting = `[Agent] Flagged transaction detected (ID: ${lastTxn.transaction_id}). Merchant: ${lastTxn.merchant}, Amount: ${lastTxn.amount} PKR. Status: ${lastTxn.decision.toUpperCase()}. Reason: "${lastTxn.explanation}". How would you like me to proceed with security override?`;
+      let greeting = '';
+      if (lastTxn.decision === 'approve') {
+        greeting = `[Agent] Transaction approved (ID: ${lastTxn.transaction_id}). Merchant: ${lastTxn.merchant}, Amount: ${lastTxn.amount} PKR. No security flags raised. I'm here if you have any questions!`;
+      } else {
+        greeting = `[Agent] Flagged transaction detected (ID: ${lastTxn.transaction_id}). Merchant: ${lastTxn.merchant}, Amount: ${lastTxn.amount} PKR. Status: ${lastTxn.decision.toUpperCase()}. Reason: "${lastTxn.explanation}". How would you like me to proceed with security override?`;
+      }
+      
       setHistory([
         { sender: 'agent', text: greeting }
       ]);
@@ -22,7 +27,9 @@ export default function AgentWorkspace({ lastTxn, onStatusUpdated }) {
         `[SYS] Loaded Transaction Context ID: ${lastTxn.transaction_id}`,
         `[SYS] Current Risk Assessment: ${lastTxn.decision.toUpperCase()}`,
         `[SYS] Secure Vault Key Check: OK (AES-256)`,
-        `[SYS] Waiting for user confirmation or override instructions...`
+        lastTxn.decision === 'approve' 
+          ? `[SYS] Transaction cleared automatically. Waiting for user input...`
+          : `[SYS] Waiting for user confirmation or override instructions...`
       ]);
     } else {
       setHistory([
@@ -134,7 +141,8 @@ export default function AgentWorkspace({ lastTxn, onStatusUpdated }) {
             if (isErr) colorCls = "text-bad font-semibold";
             
             return (
-              <div key={index} className="row-in leading-relaxed text-2xs">
+              <div key={index} className={`row-in leading-relaxed text-2xs type-line ${colorCls}`}>
+                <span className="text-ok mr-2">●</span>
                 {log}
               </div>
             );
@@ -151,12 +159,14 @@ export default function AgentWorkspace({ lastTxn, onStatusUpdated }) {
               <p className="text-2xs text-ink-3 mt-1">
                 Chat with the AI to verify flagged transactions using natural language.
               </p>
-              <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded bg-amber-500/10 text-amber-700 text-3xs font-medium border border-amber-500/20">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              {(!lastTxn || lastTxn.ai_available === false) && (
+                <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded bg-amber-500/10 text-amber-700 text-3xs font-medium border border-amber-500/20">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
-                Local Fallback Mode Active. Responses are currently static because the Fireworks API key is missing.
-              </div>
+                Running in offline demo mode. AI responses are pre-computed to showcase the product flow.
+                </div>
+              )}
             </div>
             {lastTxn && (
               <span className="badge badge-warn text-3xs font-mono uppercase shrink-0 ml-4">
@@ -283,7 +293,7 @@ export default function AgentWorkspace({ lastTxn, onStatusUpdated }) {
               disabled={biometricStatus !== 'idle'}
               className={`w-full py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
                 biometricStatus === 'scanning' 
-                  ? 'bg-accent/20 text-accent border border-accent' 
+                  ? 'bg-accent/20 text-accent border border-accent scanning-active' 
                   : biometricStatus === 'success'
                   ? 'bg-ok text-white'
                   : 'bg-accent text-white hover:bg-accent/90'

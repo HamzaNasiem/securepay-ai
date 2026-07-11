@@ -136,3 +136,27 @@
 .row-in {
   animation: row-in 0.15s ease forwards;
 }
+
+/* Typewriter effect for Agent */
+@keyframes type-in {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.type-line {
+  animation: type-in 0.3s ease-out forwards;
+  opacity: 0;
+}
+.type-line:nth-child(1) { animation-delay: 0.1s; }
+.type-line:nth-child(2) { animation-delay: 0.3s; }
+.type-line:nth-child(3) { animation-delay: 0.5s; }
+.type-line:nth-child(4) { animation-delay: 0.7s; }
+
+/* Radar/Scanning pulse for Biometric */
+@keyframes radar-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(193, 95, 60, 0.4); }
+  70% { box-shadow: 0 0 0 15px rgba(193, 95, 60, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(193, 95, 60, 0); }
+}
+.scanning-active {
+  animation: radar-pulse 1.5s infinite;
+}

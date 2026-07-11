@@ -592,7 +592,7 @@ async def api_kill_token(req: KillTokenRequest):
     # Update matching entry in the live feed (optimistic UI update)
     masked = f"{req.token[:4]}{'*' * 8}{req.token[-4:]}"
     for tx in _transactions:
-        if tx.get("token_masked") == masked and tx.get("token_status") == "active":
+        if tx.get("token_masked") == masked and tx.get("token_status") in ("active", "paused", "used"):
             tx["token_status"] = "killed"
 
     logger.info("Token killed: %s", masked)

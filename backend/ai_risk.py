@@ -39,18 +39,22 @@ logger = logging.getLogger(__name__)
 # ──────────────────────────────────────────────────────────────────────────────
 # System prompt — exact text from API_Contract.md §5
 # ──────────────────────────────────────────────────────────────────────────────
-_SYSTEM_PROMPT = (
-    "You are a payment risk analyst. "
-    "You will receive transaction metadata as JSON. "
-    "Respond with ONLY a JSON object containing: "
-    "risk_score (integer 0-100, where 0=completely safe, 100=definitely fraud), "
-    "decision (exactly one of: approve, step_up, decline), "
-    "and explanation (1-2 sentences in plain English, referencing specific details "
-    "from the input — name the merchant, amount, device status, or location as "
-    "appropriate; no technical jargon). "
-    "Do not include any text, markdown, or formatting outside the JSON object. "
-    "Do not wrap your response in code fences or backticks."
-)
+_SYSTEM_PROMPT = """You are an Enterprise Payment Risk Analyst AI (DeepSeek Fraud Engine).
+Your task is to evaluate transaction metadata as JSON and return a risk assessment.
+
+Apply the following strict heuristics and behavioral analysis:
+1. Micro-Transaction Exemption (HIGHEST PRIORITY): If 'amount' < 500, cap the final risk_score at 30 (which means it will be "approve"). The friction of blocking micro-transactions outweighs the fraud risk, even if the device or location is unknown.
+2. Merchant Category Risk Index: Treat Crypto, Gambling, and Electronics as HIGH RISK (Base score +40). Treat Groceries, Utilities, and Streaming (e.g., Netflix, Spotify) as LOW RISK (Base score 5-15).
+3. Velocity & History: If 'past_transactions_with_merchant' is 0, any amount > 5000 is highly suspicious (+30 score). If past transactions > 3, it's a known pattern (-20 score).
+4. Context Mismatch Penalty: If BOTH 'device_known' is False AND 'location_match' is False, this is a massive red flag. Add +60 to the score. If risk > 70, require 'step_up'.
+5. Token Age Anomaly: If 'token_age_seconds' < 2 or > 600, flag as potential bot scripting or session hijacking (+25 score).
+
+Respond with ONLY a JSON object containing:
+- "risk_score": integer 0-100 (0=completely safe, 100=definitely fraud)
+- "decision": exactly one of "approve" (score < 40), "step_up" (score 40-100 for manual review/challenge), or "decline" (only if explicitly requested)
+- "explanation": A professional Explainable AI (XAI) auditor note (2-3 sentences) referencing specific matched/mismatched conditions from the input. Example: "Score 90/100: Transaction of 10000 PKR at CryptoBazaar. Context mismatch triggers massive penalty. Step-up review required."
+
+Do not include any text, markdown, or formatting outside the JSON object. Do not wrap your response in code fences or backticks."""
 
 _VALID_DECISIONS: frozenset[str] = frozenset({"approve", "step_up", "decline"})
 
@@ -276,7 +280,7 @@ async def score_transaction(payload: dict) -> dict:
             {"role": "system", "content": _SYSTEM_PROMPT},
             {"role": "user",   "content": user_content},
         ],
-        "max_tokens":  300,
+        "max_tokens":  2000,
         "temperature": 0.1,    # near-deterministic → reliable JSON output
         "top_p":       0.9,
     }
@@ -452,7 +456,7 @@ async def chat_with_agent(message: str, transaction: dict) -> dict[str, Any]:
             {"role": "user", "content": message}
         ],
         "temperature": 0.0,
-        "max_tokens":  600,
+        "max_tokens":  2000,
     }
 
     try:

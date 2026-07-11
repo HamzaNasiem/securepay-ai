@@ -1,120 +1,143 @@
-# 🛡️ SecurePay AI
+# SecurePay AI 🛡️
 
-### **Disposable Payment Card Tokenization + AI-Explained Fraud Prevention**
-*Built for the AMD Developer Hackathon: ACT II — Unicorn Track*
+[![AMD Instinct MI300X](https://img.shields.io/badge/GPU-AMD%20Instinct%20MI300X-orange?style=for-the-badge&logo=amd)](https://www.amd.com/en/products/accelerators/instinct/mi300/mi300x.html)
+[![ROCm 7.2](https://img.shields.io/badge/Platform-ROCm%207.2-blue?style=for-the-badge&logo=amd)](https://rocm.docs.amd.com/)
+[![Docker Multi-Stage](https://img.shields.io/badge/Build-Docker%20Multi--Stage-blue?style=for-the-badge&logo=docker)](https://www.docker.com/)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-green?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
 
-SecurePay AI eliminates the single biggest vulnerability in digital payments: the repeated exposure of a customer's real credit card number (PAN) to every merchant, gateway, and intermediary server it touches. 
-
-It replaces sensitive credentials with disposable, single-use, merchant-locked, and amount-capped tokens, and adds an AI explainability layer powered by **DeepSeek V4 Pro** running on **AMD GPU Cloud Infrastructure** via **Fireworks AI**. Instead of a mysterious "declined" screen, SecurePay AI translates security decisions into clear, plain-language explanations.
+SecurePay AI is a world-class, hardware-accelerated fraud prevention engine and disposable tokenization platform. Built for the **AMD Developer Hackathon: ACT II (Unicorn Track)**, the platform eliminates credit card leaks by issuing single-use, merchant-locked, and amount-capped virtual tokens, evaluated in real-time by an Explainable AI Agent running on **AMD Instinct MI300X accelerators**.
 
 ---
 
-## 🚀 Why SecurePay AI Wins: Value Proposition
-1. **Explainable Trust**: Current fraud prevention engines (like Visa VTS, Mastercard MDES, or rule-based firewalls) act as black boxes. SecurePay AI uses a hosted DeepSeek V4 Pro model to describe *exactly why* a transaction was approved, flagged for verification, or blocked.
-2. **True Tokenization Security**: Real card details are stored in an AES-256-GCM encrypted database (Vault) and never returned to any API endpoint, merchant simulator, or logger. The merchant only receives a token that cannot be replayed elsewhere.
-3. **Optimized for AMD Ecosystem**: Built explicitly to showcase AMD Developer Cloud compute acceleration, using Fireworks AI's AMD-accelerated endpoints with Google's DeepSeek V4 Pro.
+## 🚀 Key Features
+
+*   **🔒 Zero-Leak Tokenization:** Real Primary Account Numbers (PAN) are encrypted and stored in an offline vault. The merchant only receives a disposable, merchant-locked virtual card token.
+*   **🧠 Explainable AI Security:** Powered by DeepSeek V4 Pro / Gemma 2 hosted on AMD hardware, the engine analyzes transactions and outputs plain-language security reasoning explaining why a payment was approved, declined, or held for verification.
+*   **⚡ Real-Time AMD Telemetry:** Tracks processing latencies, GPU performance metrics, and cost savings directly on the dashboard.
+*   **🛑 Single-Click Kill Switch:** Users can instantly revoke or destroy any merchant token from the Active Subscriptions panel to immediately stop future recurring charges.
 
 ---
 
 ## 🏗️ System Architecture
 
+SecurePay AI is built as a highly optimized containerized microservice architecture:
+
 ```
-                               ┌───────────────────────────┐
-                               │       React Frontend      │
-                               │  Vite Dev Server (5173)   │
-                               └─────────────┬─────────────┘
-                                             │ HTTP REST
-                                             ▼
-                               ┌───────────────────────────┐
-                               │      FastAPI Backend      │
-                               │      Uvicorn (8080)       │
-                               └──────┬──────┬──────┬──────┘
-                                      │      │      │
-             ┌────────────────────────┘      │      └────────────────────────┐
-             ▼                               ▼                               ▼
-  ┌─────────────────────┐         ┌─────────────────────┐         ┌─────────────────────┐
-  │    Token Engine     │         │   Encrypted Vault   │         │    AI Risk Engine   │
-  │     (Redis 7)       │         │ (SQLite + AES-256)  │         │  (DeepSeek V4 Pro on AMD)   │
-  │ • Luhn-valid proxy  │         │ • Strict security   │         │ • Strict JSON specs │
-  │ • Merchant-locked   │         │   invariant: real   │         │ • 3-tier fallback   │
-  │ • TTL & Kill Switch │         │   data never leaks  │         │   defensive parsing │
-  └─────────────────────┘         └─────────────────────┘         └─────────────────────┘
+                  ┌────────────────────────────────────────┐
+                  │          React Frontend (Vite)         │
+                  │              (Port 3000)               │
+                  └───────────────────┬────────────────────┘
+                                      │
+                                      ▼
+                  ┌────────────────────────────────────────┐
+                  │            FastAPI Backend             │
+                  │              (Port 8080)               │
+                  └──────────┬──────────────────┬──────────┘
+                             │                  │
+                             ▼                  ▼
+       ┌───────────────────────────┐      ┌───────────────────────────┐
+       │   Encrypted SQLite Vault  │      │     Redis Token Store     │
+       │      (AES-256-GCM)        │      │       (Cache/TTL)         │
+       └───────────────────────────┘      └───────────────────────────┘
+                                                │
+                                                ▼
+                                    ┌───────────────────────┐
+                                    │    Fireworks AI API   │
+                                    ├───────────────────────┤
+                                    │  AMD Instinct MI300X  │
+                                    │     Accelerators      │
+                                    └───────────────────────┘
 ```
+
+*   **Prototyping Environment:** Prototyped and evaluated locally on **AMD AI Notebooks** (ROCm 7.2 + vLLM). See the prototyping notebook [`amd_rocm_vllm_evaluation.ipynb`](./amd_rocm_vllm_evaluation.ipynb) for detailed setup.
+*   **Production Inference:** Scaled through Fireworks AI Serverless API routing to AMD MI300X GPU clusters.
+*   **Data Isolation:** Real credit card details are encrypted in the SQLite vault with AES-256-GCM and never leave the local environment.
 
 ---
 
-## 🛠️ Quick Start & Setup
+## 🐳 Running with Docker (World-Class Containerization)
 
-### 1. Prerequisites
-- [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/) installed.
-- A Fireworks AI API Key (obtainable with hackathon credits or code `AMDXBUILDER`).
+The stack is fully containerized using optimized, multi-stage Docker builds to keep image sizes minimal and ensure production-grade security.
 
-### 2. Environment Configuration
-Create a `.env` file in the root directory (copied from `.env.example`):
+### 1. Configure Environment Variables
+Create a `.env` file in the root directory:
 ```bash
 cp .env.example .env
 ```
-Fill in the credentials in `.env`:
+Update `.env` with your Fireworks API key and configurations:
 ```ini
-FIREWORKS_API_KEY=fw_your_api_key_here
+FIREWORKS_API_KEY=your_fireworks_api_key
 FIREWORKS_BASE_URL=https://api.fireworks.ai/inference/v1
-FIREWORKS_MODEL=accounts/fireworks/models/DeepSeek V4 Pro2-9b-it
+FIREWORKS_MODEL=accounts/fireworks/models/deepseek-v4-pro
 REDIS_URL=redis://redis:6379
 VAULT_ENCRYPTION_KEY=replace_with_exactly_32_characters!!
 VAULT_DB_PATH=vault.db
-FRONTEND_ORIGIN=http://localhost:5173
+FRONTEND_ORIGIN=http://localhost:3000
 ```
 
-### 3. Run Containerized Services
-To build and start the database, backend services, and web interface, execute:
+### 2. Launch the Stack
+Run Docker Compose to pull dependencies, compile the React build, and boot up all services:
 ```bash
-docker-compose up --build
+docker-compose up --build -d
 ```
-Once initialized, the services will be available at:
-- **Web App UI (React)**: `http://localhost:5173`
-- **Backend API (FastAPI)**: `http://localhost:8080`
-- **API Docs (Swagger)**: `http://localhost:8080/docs`
+
+Once started, the services will be live at:
+*   **React Frontend:** [http://localhost:3000](http://localhost:3000)
+*   **FastAPI Backend:** [http://localhost:8080](http://localhost:8080)
+*   **Interactive API Docs:** [http://localhost:8080/docs](http://localhost:8080/docs)
 
 ---
 
-## 🧪 Demo & Testing Scripts
+## 📦 Publishing Production Images
 
-### Option A: Automation Test Suite (Scripted)
-Verify all API endpoints, token generation, single-use enforcement, and kill switch revocation using the pre-built test suite:
+To manually build and push optimized production images to a Docker registry (e.g. Docker Hub):
 
-- **On Windows (PowerShell)**:
-  ```powershell
-  ./test_flow.ps1
-  ```
-- **On Linux / AMD Developer Cloud (Bash)**:
-  ```bash
-  chmod +x test_flow.sh
-  ./test_flow.sh
-  ```
-
-### Option B: Pre-seed Demo Data (Dashboard)
-To populate the transaction feed on your dashboard with five varied real-world scenarios (safe, risky, and replay attempts), run the demo seeder:
 ```bash
-# Inside docker or your virtual environment
-cd backend
-python seed_demo.py
+# 1. Log in to your registry
+docker login
+
+# 2. Build and tag optimized backend image
+docker build -t your-username/securepay-backend:latest -f Dockerfile.backend .
+
+# 3. Build and tag optimized frontend image (uses Nginx serve-stage)
+docker build -t your-username/securepay-frontend:latest -f Dockerfile.frontend .
+
+# 4. Push images to registry
+docker push your-username/securepay-backend:latest
+docker push your-username/securepay-frontend:latest
 ```
-After seeding, navigate to the **Risk Dashboard** in the browser to view the live feed.
 
 ---
 
-## 📹 Video Demo Storyboard (For Judges)
+## 🧪 Testing the End-to-End Flow
 
-1. **Step 1: Scenario Selection**
-   - In the **Checkout Terminal**, select **Netflix (1,200 PKR)** (desc: *Safe Subscription*).
-   - Click **Generate Secure Token**. A payment card appears showing the masked Luhn-valid proxy card number (`4539 **** **** 1234`) with a ticking countdown.
-2. **Step 2: Merchant Checkout Simulation**
-   - Click **Send Token to Netflix Checkout**. The Merchant Simulator view renders, demonstrating that Netflix received the token but PAN/CVV fields are completely `null`.
-3. **Step 3: AI Fraud Analysis**
-   - Click **Process Settlement**. The transaction is processed. DeepSeek V4 Pro returns an **Approved** status with a plain-language explanation citing why the transaction is safe.
-4. **Step 4: Real-time Replay Protection**
-   - Click **Start New Test** and select **CryptoBazaar.io (45,000 PKR)**. Proceed through the payment. It is **Declined** because the AI flag detects an unrecognized device, location mismatch, and anomalous amount.
-5. **Step 5: Kill Switch in Action**
-   - Generate a new Netflix token.
-   - Go to the **Risk Dashboard**, find the active token row, and click **Kill Token**.
-   - Attempt to checkout again with this token. The transaction is instantly blocked with a `Decline — This token was manually revoked` explanation.
+### Interactive UI Walkthrough
+1.  Open **[http://localhost:3000](http://localhost:3000)**.
+2.  Click **"Enter Demo — Skip Login"** to bypass auth instantly.
+3.  Choose a merchant preset (e.g. **Netflix** for low-risk, or **CryptoBazaar** for high-risk simulation).
+4.  Click **"Generate secure token"** to issue a merchant-locked, capped card token.
+5.  Click **"Send to checkout"** to view what the merchant receives (note that the real card number is entirely missing!).
+6.  Click **"Run AI Risk Analysis on AMD Hardware"** to evaluate the risk score and read the plain-language explanation generated by the AMD MI300X GPU.
+7.  Click **"Open Agent Workspace"** to enter the security terminal and interactively query the AI agent.
+
+### Automated API Validation Script
+Run the automated flow scripts to test the API endpoints locally:
+
+*   **Linux / macOS:**
+    ```bash
+    chmod +x test_flow.sh
+    ./test_flow.sh
+    ```
+*   **Windows:**
+    ```powershell
+    ./test_flow.ps1
+    ```
+
+---
+
+## 💻 Technical Stack
+
+*   **Frontend:** React (Vite), Tailwind CSS, Lucide Icons, HTML5, Nginx.
+*   **Backend:** FastAPI, Python 3.11, Uvicorn, SQLite (Vault).
+*   **Cache & Session State:** Redis 7.
+*   **Hardware Acceleration & AI Core:** AMD Instinct MI300X accelerators running ROCm 7.2 (via Fireworks AI).
