@@ -74,6 +74,12 @@ export const agentChat = async (message, transactionId, token) => {
   return response.data;
 };
 
+export const confirmPayment = async (transactionId, token, otp) => {
+  const response = await client.post('/pay/confirm', { transaction_id: transactionId, token, otp });
+  return response.data;
+};
+
+
 export const setupWallet = async (pan, expiry, cvv, cardholder) => {
   const response = await client.post('/api/wallet/setup', {
     pan, expiry, cvv, cardholder
@@ -83,6 +89,26 @@ export const setupWallet = async (pan, expiry, cvv, cardholder) => {
 
 export const getWalletStatus = async () => {
   const response = await client.get('/api/wallet/status');
+  return response.data;
+};
+
+export const rotateKeys = async () => {
+  const response = await client.post('/vault/rotate-keys');
+  return response.data;
+};
+
+export const getCircuitBreakerTelemetry = async () => {
+  const response = await client.get('/telemetry/circuit-breaker');
+  return response.data;
+};
+
+export const getVaultTelemetry = async () => {
+  const response = await client.get('/telemetry/vault');
+  return response.data;
+};
+
+export const getAuditLedger = async () => {
+  const response = await client.get('/telemetry/audit-ledger');
   return response.data;
 };
 

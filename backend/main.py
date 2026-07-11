@@ -27,6 +27,7 @@ import logging
 import os
 import time
 import re
+import secrets
 from collections import deque
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -39,7 +40,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
 
-from ai_risk import score_transaction, chat_with_agent
+from ai_risk import score_transaction, chat_with_agent, register_transactions_feed
 from decision import make_decision
 from merchant_sim import router as merchant_router
 from token_engine import (
@@ -51,7 +52,7 @@ from token_engine import (
     update_token_status,
     update_token_limit,
 )
-from vault import delete_card, resolve_token, store_card, init_vault, get_decrypted_breach_records
+from vault import delete_card, resolve_token, store_card, init_vault, get_decrypted_breach_records, rotate_vault_keys, get_kek_version, get_audit_ledger
 
 # ── Bootstrap ─────────────────────────────────────────────────────────────────
 # Load .env from current directory or parent directory (useful when running locally from backend/)
@@ -75,6 +76,7 @@ logger = logging.getLogger(__name__)
 # In production this would be a persistent DB (Postgres / TimescaleDB).
 # For the hackathon demo: in-memory is sufficient and removes an extra dependency.
 _transactions: deque = deque(maxlen=200)
+register_transactions_feed(_transactions)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Redis client — shared across requests via app state
@@ -211,11 +213,16 @@ class WalletSetupRequest(BaseModel):
         return v
 
 
+class BiometricMetadata(BaseModel):
+    typing_duration_ms: int = Field(default=0, ge=0)
+
+
 class PaymentMetadata(BaseModel):
     device_known:                    bool = Field(default=False)
     location_match:                  bool = Field(default=False)
     past_transactions_with_merchant: int  = Field(default=0, ge=0)
     merchant_category:               str  = Field(default="general")
+    biometrics:        BiometricMetadata = Field(default_factory=BiometricMetadata)
 
 
 class PayRequest(BaseModel):
@@ -248,6 +255,13 @@ class AgentChatRequest(BaseModel):
     message:        str = Field(..., min_length=1)
     transaction_id: str = Field(..., min_length=1)
     token:          str = Field(..., min_length=16, max_length=16)
+
+
+class ConfirmPaymentRequest(BaseModel):
+    transaction_id: str = Field(..., min_length=1)
+    token:          str = Field(..., min_length=16, max_length=16)
+    otp:            str = Field(..., min_length=6, max_length=6)
+
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -467,6 +481,7 @@ async def api_pay(req: PayRequest):
         )
 
     # ── Step 3: AI risk scoring ───────────────────────────────────────────────
+    txn_id = "txn_" + secrets.token_hex(3)
     token_age = _compute_token_age(token_meta)
 
     ai_payload = {
@@ -478,10 +493,13 @@ async def api_pay(req: PayRequest):
         "device_known":                    req.metadata.device_known,
         "location_match":                  req.metadata.location_match,
         "past_transactions_with_merchant": req.metadata.past_transactions_with_merchant,
+        "token":                           req.token,
+        "biometrics":                      req.metadata.biometrics.model_dump()
     }
 
     start_time = time.perf_counter()
-    ai_result = await score_transaction(ai_payload)
+    ai_result = await score_transaction(ai_payload, txn_id)
+    ai_result["transaction_id"] = txn_id
     latency_ms = int((time.perf_counter() - start_time) * 1000)
 
     # ── Step 4: Decision engine ───────────────────────────────────────────────
@@ -499,6 +517,8 @@ async def api_pay(req: PayRequest):
     result["latency_ms"] = latency_ms
     result["prompt_tokens"] = ai_result.get("prompt_tokens", 0)
     result["completion_tokens"] = ai_result.get("completion_tokens", 0)
+    result["features"] = ai_result.get("features", {})
+    result["kek_version"] = await get_kek_version()
 
     # ── Step 5: Mark token used on approval ───────────────────────────────────
     if valid and result["decision"] == "approve":
@@ -509,8 +529,17 @@ async def api_pay(req: PayRequest):
             raise HTTPException(status_code=503, detail="Failed to update token state.")
         result["token_status"] = "used"
 
-    # ── Step 6: Append to live transaction feed ───────────────────────────────
     _transactions.appendleft(result)
+    # Append to cryptographic WORM audit trail
+    from vault import log_audit_event
+    await log_audit_event("PAYMENT_SETTLEMENT", {
+        "transaction_id": result["transaction_id"],
+        "token_masked": result["token_masked"],
+        "merchant": req.merchant,
+        "amount": req.amount,
+        "decision": result["decision"],
+        "risk_score": result["risk_score"]
+    })
 
     logger.info(
         "Transaction %s: merchant=%s amount=%s decision=%s risk=%s latency=%dms",
@@ -539,6 +568,68 @@ async def api_pay(req: PayRequest):
         return JSONResponse(status_code=502, content=pay_response)
 
     return pay_response
+
+
+@app.post(
+    "/pay/confirm",
+    summary="Confirm a step-up payment using 3DS2 OTP",
+    tags=["Payment"],
+)
+async def api_pay_confirm(req: ConfirmPaymentRequest):
+    """
+    Submits a dynamic 3DS2 OTP verification code to settle a transaction
+    previously placed in 'step_up' review.
+    For the demo, entering passcode '123456' immediately overrides the decision to 'approve'.
+    """
+    if req.otp != "123456":
+        raise HTTPException(status_code=400, detail="Invalid dynamic verification passcode.")
+
+    redis = _get_redis()
+    
+    # Search the transaction queue for the matching ID and token
+    masked = f"{req.token[:4]}{'*' * 8}{req.token[-4:]}"
+    found_tx = None
+    
+    for tx in _transactions:
+        if tx.get("transaction_id") == req.transaction_id and tx.get("token_masked") == masked:
+            if tx.get("decision") != "step_up":
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Transaction is already in '{tx.get('decision')}' state."
+                )
+            found_tx = tx
+            break
+            
+    if not found_tx:
+        raise HTTPException(status_code=404, detail="Transaction not found or expired.")
+
+    # Mark the token as used in Redis
+    try:
+        await mark_used(redis_client=redis, token=req.token)
+    except Exception as exc:
+        logger.exception("mark_used failed in pay_confirm: %s", exc)
+        raise HTTPException(status_code=503, detail="Failed to update token state.")
+
+    # Update decision and explanation
+    found_tx["decision"] = "approve"
+    found_tx["explanation"] = "Approved: Dynamic 3DS2 authentication verified successfully (OTP correct)."
+    found_tx["token_status"] = "used"
+
+    logger.info(
+        "Transaction %s APPROVED via 3DS2 OTP verification.",
+        req.transaction_id
+    )
+
+    return {
+        "transaction_id":    found_tx["transaction_id"],
+        "decision":          found_tx["decision"],
+        "risk_score":        found_tx["risk_score"],
+        "explanation":       found_tx["explanation"],
+        "token_status":      found_tx["token_status"],
+        "latency_ms":        found_tx["latency_ms"],
+        "prompt_tokens":     found_tx["prompt_tokens"],
+        "completion_tokens": found_tx["completion_tokens"],
+    }
 
 
 @app.post(
@@ -817,3 +908,57 @@ async def health():
             "Built for AMD Developer Hackathon ACT II — Unicorn Track."
         ),
     }
+
+
+@app.post("/vault/rotate-keys", tags=["Cryptographic Vault"])
+async def api_rotate_keys():
+    """
+    Triggers KMS Master Key Rotation and re-encrypts all vault records.
+    """
+    try:
+        new_version = await rotate_vault_keys()
+        return {
+            "status": "success",
+            "message": f"Successfully rotated master key to KEK version {new_version}. Re-encrypted all card records.",
+            "kek_version": new_version
+        }
+    except Exception as exc:
+        logger.exception("Key rotation failed: %s", exc)
+        raise HTTPException(status_code=500, detail=f"KMS key rotation failure: {str(exc)}")
+
+
+@app.get("/telemetry/circuit-breaker", tags=["Telemetry"])
+async def api_circuit_breaker_telemetry():
+    """
+    Returns live connection health and circuit breaker status.
+    """
+    from circuit_breaker import fireworks_circuit_breaker
+    return fireworks_circuit_breaker.get_status()
+
+
+@app.get("/telemetry/vault", tags=["Telemetry"])
+async def api_vault_telemetry():
+    """
+    Returns KMS KEK version and key storage metadata.
+    """
+    version = await get_kek_version()
+    return {
+        "kek_version": version,
+        "key_manager": "SecurePay Local KMS Simulator",
+        "compliance_level": "FIPS 140-2 Level 3 Mock"
+    }
+
+
+@app.get("/telemetry/audit-ledger", tags=["Telemetry"])
+async def api_audit_ledger():
+    """
+    Returns the complete cryptographic WORM audit trail for security checks.
+    """
+    try:
+        ledger = await get_audit_ledger()
+        return {"ledger": ledger}
+    except Exception as exc:
+        logger.exception("Failed to retrieve audit ledger: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+

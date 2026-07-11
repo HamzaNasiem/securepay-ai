@@ -88,7 +88,7 @@ def make_decision(
     -------
     dict: complete transaction record ready to be stored and returned via /pay
     """
-    txn_id    = _new_txn_id()
+    txn_id    = ai_result.get("transaction_id") or _new_txn_id()
     timestamp = datetime.now(timezone.utc).isoformat()
     masked    = _mask(token)
 

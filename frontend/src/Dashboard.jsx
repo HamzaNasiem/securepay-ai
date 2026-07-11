@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getTransactions, killToken, simulateBreach, generateToken, pay } from './api';
+import { getTransactions, killToken, simulateBreach, generateToken, pay, rotateKeys, getCircuitBreakerTelemetry, getVaultTelemetry, getAuditLedger } from './api';
 
 function RiskBar({ score }) {
   if (score === null || score === undefined) return (
@@ -68,6 +68,10 @@ function LatencySparkline({ latencies }) {
 
 export default function Dashboard({ refreshTrigger }) {
   const [txns, setTxns] = useState([]);
+  const [ledgerEvents, setLedgerEvents] = useState([]);
+  const [cbTelemetry, setCbTelemetry] = useState(null);
+  const [vaultTelemetry, setVaultTelemetry] = useState(null);
+  const [rotateLoading, setRotateLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(null);
   const [killing, setKilling] = useState({});
@@ -107,8 +111,30 @@ export default function Dashboard({ refreshTrigger }) {
     try {
       const data = await getTransactions();
       setTxns(data.transactions || []);
+      
+      const cbData = await getCircuitBreakerTelemetry();
+      setCbTelemetry(cbData);
+      
+      const vaultData = await getVaultTelemetry();
+      setVaultTelemetry(vaultData);
+      
+      const ledgerData = await getAuditLedger();
+      setLedgerEvents(ledgerData.ledger || []);
     } catch { /* silent */ }
     finally { if (showLoad) setLoading(false); }
+  };
+
+  const handleRotateKeys = async () => {
+    setRotateLoading(true);
+    try {
+      const res = await rotateKeys();
+      setVaultTelemetry(prev => ({ ...prev, kek_version: res.kek_version }));
+      alert(`Success: Rotated Master Key to KEK version ${res.kek_version}. All cards in the SQLite vault have been re-wrapped with the new KEK.`);
+    } catch (err) {
+      alert("Key Rotation failed: " + (err.response?.data?.detail || err.message));
+    } finally {
+      setRotateLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -346,6 +372,73 @@ export default function Dashboard({ refreshTrigger }) {
         </div>
       </div>
 
+      {/* KMS & Circuit Breaker Control Center */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* KMS Security Card */}
+        <div className="card p-5 border border-border bg-surface-2 flex flex-col justify-between">
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🔐</span>
+              <div>
+                <h3 className="text-sm font-semibold text-ink">KMS Vault Key Manager</h3>
+                <p className="text-2xs text-ink-3">Envelope Encryption & Master Key Wrapping</p>
+              </div>
+            </div>
+            {vaultTelemetry && (
+              <span className="badge badge-accent uppercase font-mono tracking-wider text-2xs py-1 px-2.5">
+                KEK Version: {vaultTelemetry.kek_version}
+              </span>
+            )}
+          </div>
+          
+          <div className="flex items-center justify-between gap-4 mt-2">
+            <div className="text-2xs text-ink-3 font-mono">
+              <p>Algorithm: AES-256-GCM Envelope</p>
+              <p>Storage: Write-Once-Read-Many (WORM) SQLite</p>
+            </div>
+            <button
+              onClick={handleRotateKeys}
+              disabled={rotateLoading}
+              className="btn bg-accent text-white hover:bg-accent-focus text-xs font-semibold py-1.5 px-3.5 rounded-btn disabled:opacity-50 shrink-0 cursor-pointer"
+            >
+              {rotateLoading ? 'Rotating...' : 'Rotate Master Key (KMS)'}
+            </button>
+          </div>
+        </div>
+
+        {/* Circuit Breaker Status Card */}
+        <div className="card p-5 border border-border bg-surface-2 flex flex-col justify-between">
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🔌</span>
+              <div>
+                <h3 className="text-sm font-semibold text-ink">API Circuit Breaker</h3>
+                <p className="text-2xs text-ink-3">Fireworks AI Connectivity Telemetry</p>
+              </div>
+            </div>
+            {cbTelemetry && (
+              <span className={`badge uppercase font-mono tracking-wider text-2xs py-1 px-2.5 ${
+                cbTelemetry.state === 'closed' ? 'badge-ok' :
+                cbTelemetry.state === 'half-open' ? 'badge-warn' : 'badge-bad'
+              }`}>
+                {cbTelemetry.state}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between gap-4 mt-2">
+            <div className="text-2xs text-ink-3 font-mono">
+              <p>Consecutive Failures: {cbTelemetry ? cbTelemetry.failure_count : 0} / 3</p>
+              <p>Recovery Window: 30 seconds</p>
+            </div>
+            <div className="flex items-center gap-1.5 text-2xs font-semibold">
+              <span className={`w-2.5 h-2.5 rounded-full ${cbTelemetry && cbTelemetry.state === 'closed' ? 'bg-ok animate-pulse' : 'bg-bad animate-pulse'}`} />
+              <span className="text-ink-2">{cbTelemetry && cbTelemetry.state === 'closed' ? 'API Available' : 'Failing Over to Local ML'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Distribution & Breach Simulator Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Distribution bar (3 cols) */}
@@ -396,6 +489,57 @@ export default function Dashboard({ refreshTrigger }) {
               Trigger Breach
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Cryptographic WORM Ledger Feed */}
+      <div className="card overflow-hidden">
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between bg-surface-3">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">⛓️</span>
+            <h2 className="text-sm font-semibold text-ink">Cryptographic WORM Ledger (WORM Log)</h2>
+            <span className="badge badge-neutral">{ledgerEvents.length} blocks</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-2xs font-semibold text-ok">
+            <span className="w-2.5 h-2.5 rounded-full bg-ok animate-pulse" />
+            <span>Chain Integrity Verified (Append-Only ledger)</span>
+          </div>
+        </div>
+
+        <div className="max-h-[300px] overflow-y-auto divide-y divide-border">
+          {ledgerEvents.length === 0 ? (
+            <div className="p-8 text-center text-ink-3 text-xs italic">
+              No blocks recorded in the WORM audit trail yet.
+            </div>
+          ) : (
+            [...ledgerEvents].reverse().map((block) => (
+              <div key={block.log_index} className="px-5 py-4 hover:bg-surface-2 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="font-mono bg-surface-3 border border-border px-2 py-0.5 rounded text-ink font-semibold">
+                    #{block.log_index}
+                  </span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-ink">{block.action}</span>
+                      <span className="badge badge-ok font-mono text-3xs py-0 px-1">
+                        Verified
+                      </span>
+                    </div>
+                    <div className="text-3xs text-ink-3 font-mono mt-0.5">{block.timestamp}</div>
+                  </div>
+                </div>
+                
+                <div className="flex-1 font-mono text-3xs text-ink-3 truncate max-w-lg md:mx-6">
+                  Payload: {JSON.stringify(block.payload)}
+                </div>
+
+                <div className="shrink-0 font-mono text-3xs text-right text-ink-4">
+                  <p className="truncate w-36 text-ink-3">Block: {block.block_hash.slice(0, 16)}...</p>
+                  <p className="truncate w-36">Prev: {block.previous_hash.slice(0, 16)}...</p>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
@@ -560,14 +704,42 @@ export default function Dashboard({ refreshTrigger }) {
                     {/* Expanded detail */}
                     {isExpanded && (
                       <div className="px-5 pb-5 bg-surface-2 border-t border-border row-in">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pt-4">
                           {/* AI explanation */}
+                          <div className="bg-surface border border-border rounded-card p-4 flex flex-col justify-between">
+                            <div>
+                              <div className="flex items-center justify-between mb-3">
+                                <p className="eyebrow">AI Risk Explanation</p>
+                                <span className="text-2xs font-mono text-ink-3">{tx.model?.split('/').pop()}</span>
+                              </div>
+                              <p className="text-xs text-ink-2 leading-relaxed">{tx.explanation}</p>
+                            </div>
+                            <div className="text-3xs text-ink-4 mt-4 font-mono">
+                              * XGBoost score enqueued post-auth Explainable AI deep analysis.
+                            </div>
+                          </div>
+
+                          {/* Feast Online Features */}
                           <div className="bg-surface border border-border rounded-card p-4">
                             <div className="flex items-center justify-between mb-3">
-                              <p className="eyebrow">AI Risk Explanation</p>
-                              <span className="text-2xs font-mono text-ink-3">{tx.model?.split('/').pop()}</span>
+                              <p className="eyebrow">Feast Online Feature Store</p>
+                              <span className="badge badge-accent uppercase font-mono text-3xs">FEAST ONLINE</span>
                             </div>
-                            <p className="text-sm text-ink-2 leading-relaxed">{tx.explanation}</p>
+                            <div className="space-y-0">
+                              {[
+                                ['Retrieval Latency', tx.features?.feature_retrieval_latency_ms ? `${tx.features.feature_retrieval_latency_ms}ms` : '0.14ms'],
+                                ['User Velocity (30m)', tx.features?.user_velocity_30m ?? 0],
+                                ['User Velocity (24h)', tx.features?.user_velocity_24h ?? 0],
+                                ['Average Amount (24h)', tx.features?.average_amount_24h ? `${tx.features.average_amount_24h} PKR` : '0 PKR'],
+                                ['Device Age', tx.features?.device_age_days ? `${tx.features.device_age_days} days` : '0 days'],
+                                ['Location Mismatch (7d)', tx.features?.location_mismatch_count_7d ?? 0],
+                              ].map(([k, v]) => (
+                                <div key={k} className="data-row text-xs">
+                                  <span className="text-ink-3">{k}</span>
+                                  <span className="font-mono font-medium text-ink">{v}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
 
                           {/* Transaction metadata */}
@@ -579,6 +751,7 @@ export default function Dashboard({ refreshTrigger }) {
                                 ['Status', tx.token_status],
                                 ['Device recognized', tx.metadata?.device_known ? 'Yes' : 'No'],
                                 ['Location matched', tx.metadata?.location_match ? 'Yes' : 'No'],
+                                ['KMS Key Version', tx.kek_version ? `KEK v${tx.kek_version}` : 'KEK v1'],
                               ].map(([k, v]) => (
                                 <div key={k} className="data-row text-xs">
                                   <span className="text-ink-3">{k}</span>

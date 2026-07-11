@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { generateToken, pay, simulateMerchant, updateTokenStatus, updateTokenLimit } from './api';
+import { generateToken, pay, simulateMerchant, updateTokenStatus, updateTokenLimit, confirmPayment } from './api';
 
 const ScrambleText = ({ text }) => {
   const [display, setDisplay] = useState('');
@@ -232,6 +232,8 @@ export default function Checkout({ onTransactionComplete }) {
   const [step, setStep] = useState('idle'); // idle | generated | sim | done
   const [simData, setSimData] = useState(null);
   const [payResult, setPayResult] = useState(null);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
   const timerRef = useRef(null);
 
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
@@ -244,6 +246,10 @@ export default function Checkout({ onTransactionComplete }) {
   const [customDeviceKnown, setCustomDeviceKnown] = useState(false);
   const [customLocationMatch, setCustomLocationMatch] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+  const [authMode, setAuthMode] = useState('biometric');
+  const [bioScanActive, setBioScanActive] = useState(false);
+  const [bioScanComplete, setBioScanComplete] = useState(false);
+  const typingStartRef = useRef(null);
   const cardRef = useRef(null);
 
   const showToast = (msg) => {
@@ -310,6 +316,12 @@ export default function Checkout({ onTransactionComplete }) {
     }
     return () => clearTimeout(timerRef.current);
   }, [timeLeft, step, isPaused]);
+  useEffect(() => {
+    if (step === 'idle' || step === 'sim') {
+      typingStartRef.current = Date.now();
+    }
+  }, [step]);
+
 
   const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
@@ -383,11 +395,18 @@ export default function Checkout({ onTransactionComplete }) {
       const targetAmount = merchant.name === 'Custom Merchant' ? Number(customAmount) : merchant.amount;
       const targetDevice = merchant.name === 'Custom Merchant' ? customDeviceKnown : merchant.device_known;
       const targetLocation = merchant.name === 'Custom Merchant' ? customLocationMatch : merchant.location_match;
+      
+      const typingDurationMs = typingStartRef.current ? (Date.now() - typingStartRef.current) : 0;
+      typingStartRef.current = null; // reset
+      
       const res = await pay(tokenData.token, targetName, targetAmount, {
         device_known: targetDevice,
         location_match: targetLocation,
         past_transactions_with_merchant: merchant.past_transactions,
         merchant_category: merchant.category,
+        biometrics: {
+          typing_duration_ms: typingDurationMs
+        }
       });
       setPayResult(res);
       setStep('done');
@@ -431,6 +450,72 @@ export default function Checkout({ onTransactionComplete }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleConfirmOTP = async () => {
+    if (!otpCode) {
+      showToast('Please enter the OTP code.');
+      return;
+    }
+    setOtpLoading(true);
+    try {
+      const targetName = merchant.name === 'Custom Merchant' ? customName : merchant.name;
+      const targetAmount = merchant.name === 'Custom Merchant' ? Number(customAmount) : merchant.amount;
+      const res = await confirmPayment(payResult.transaction_id, tokenData.token, otpCode);
+      setPayResult(res);
+      playSound('success');
+      showToast('OTP Verified! Transaction approved.');
+      onTransactionComplete?.({
+        transaction_id: res.transaction_id,
+        token: tokenData.token,
+        token_masked: tokenData.token_masked,
+        merchant: targetName,
+        amount: targetAmount,
+        decision: res.decision,
+        explanation: res.explanation
+      });
+    } catch (err) {
+      playSound('error');
+      const detail = err.response?.data?.detail || 'Invalid OTP code. Please try again.';
+      showToast(detail);
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleBiometricScan = async () => {
+    playSound('click');
+    setBioScanActive(true);
+    setTimeout(async () => {
+      setBioScanActive(false);
+      setBioScanComplete(true);
+      playSound('success');
+      
+      setOtpLoading(true);
+      try {
+        const targetName = merchant.name === 'Custom Merchant' ? customName : merchant.name;
+        const targetAmount = merchant.name === 'Custom Merchant' ? Number(customAmount) : merchant.amount;
+        const res = await confirmPayment(payResult.transaction_id, tokenData.token, '123456');
+        showToast('Biometric assertion verified successfully. Transaction settled!');
+        
+        setPayResult(res);
+        setStep('done');
+        onTransactionComplete?.({
+          transaction_id: res.transaction_id,
+          token: tokenData.token,
+          token_masked: tokenData.token_masked,
+          merchant: targetName,
+          amount: targetAmount,
+          decision: 'approve',
+          explanation: 'Approved: 3DS2 biometric challenge verified via local WebAuthn (FIDO2) simulator.'
+        });
+      } catch (err) {
+        showToast('Biometric assertion failed or expired.');
+      } finally {
+        setOtpLoading(false);
+        setBioScanComplete(false);
+      }
+    }, 2000);
   };
 
   const stepState = (s) => {
@@ -1121,14 +1206,118 @@ export default function Checkout({ onTransactionComplete }) {
             </div>
 
             {/* Next Step CTA */}
-            {(payResult.decision === 'step_up' || payResult.decision === 'decline') && (
+            {payResult.decision === 'step_up' && (
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 p-4 bg-warn-muted border border-warn-border rounded-card">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-warn shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                  </svg>
+                  <div className="flex-1">
+                    <p className="text-xs font-semibold text-warn">Verification Required</p>
+                    <p className="text-2xs text-ink-2 mt-0.5">The AI flagged this transaction. You can authenticate instantly via 3DS2 OTP below, or open the Agent Workspace to negotiate with the AI analyst.</p>
+                  </div>
+                  <button
+                    onClick={() => { window.location.hash = '#/agent'; }}
+                    className="btn-primary py-2 px-4 text-xs shrink-0"
+                  >
+                    Open Agent Workspace →
+                  </button>
+                </div>
+
+                <div className="p-5 border border-border bg-surface-2 rounded-card animate-in fade-in duration-300">
+                  {/* Tabs */}
+                  <div className="flex border-b border-border mb-4">
+                    <button
+                      onClick={() => setAuthMode('biometric')}
+                      className={`pb-2 px-4 text-xs font-bold transition-colors ${authMode === 'biometric' ? 'text-accent border-b-2 border-accent' : 'text-ink-3 hover:text-ink'}`}
+                    >
+                      Instant Biometric Scan (WebAuthn)
+                    </button>
+                    <button
+                      onClick={() => setAuthMode('otp')}
+                      className={`pb-2 px-4 text-xs font-bold transition-colors ${authMode === 'otp' ? 'text-accent border-b-2 border-accent' : 'text-ink-3 hover:text-ink'}`}
+                    >
+                      SMS One-Time Passcode (OTP)
+                    </button>
+                  </div>
+
+                  {authMode === 'biometric' ? (
+                    <div className="flex flex-col items-center py-4 text-center">
+                      {!bioScanActive && !bioScanComplete ? (
+                        <>
+                          <div className="w-16 h-16 rounded-full bg-accent-muted border border-accent flex items-center justify-center mb-3 scanning-active cursor-pointer" onClick={handleBiometricScan}>
+                            <svg className="w-8 h-8 text-accent animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 11c0-3.517-1.009-6.799-2.753-9.571m-3.44 2.04l.054-.09A13.916 13.916 0 009 11a5 5 0 0010 0c0-1.02-.139-2.007-.4-2.936m-5.6 3.685A3 3 0 0015 11c0-1.657-1.343-3-3-3s-3 1.343-3 3a10.025 10.025 0 004.132 8.163m9.68-2.903A9.973 9.973 0 0119.5 19.5m-15-7a9.973 9.973 0 011.243-4.82m12.72-2.12a9.96 9.96 0 00-3.463-1.065" />
+                            </svg>
+                          </div>
+                          <p className="text-xs font-semibold text-ink mb-1">Instant WebAuthn Biometric Scan</p>
+                          <p className="text-2xs text-ink-2 mb-4 max-w-xs">Simulate TouchID or FaceID verification to instantly authorize this transaction.</p>
+                          <button
+                            onClick={handleBiometricScan}
+                            className="btn-primary py-1.5 px-5 text-xs font-semibold"
+                          >
+                            Authenticate via Biometrics
+                          </button>
+                        </>
+                      ) : bioScanActive ? (
+                        <>
+                          <div className="relative w-20 h-20 mb-4 flex items-center justify-center">
+                            <div className="absolute inset-0 rounded-full border-4 border-accent border-t-transparent animate-spin" />
+                            <span className="text-3xl animate-bounce">🔍</span>
+                          </div>
+                          <p className="text-xs font-bold text-accent animate-pulse">Scanning biometric credentials...</p>
+                          <p className="text-2xs text-ink-3 mt-1">Generating mock FIDO2/WebAuthn public key assertion...</p>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-16 h-16 rounded-full bg-ok-muted border border-ok flex items-center justify-center mb-3 scale-110 transition-transform duration-300">
+                            <span className="text-2xl">✅</span>
+                          </div>
+                          <p className="text-xs font-bold text-ok mb-1">Biometric Verification Successful</p>
+                          <p className="text-2xs text-ink-2">Settling transaction with KMS KEK rewrap assertions...</p>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-ok">🔐</span>
+                        <p className="text-xs font-semibold text-ink">3D Secure 2.0 (3DS2) Verification</p>
+                      </div>
+                      <p className="text-2xs text-ink-2 mb-3">
+                        Enter the 6-digit OTP code sent to your registered mobile phone +92 *** **** 345 (Use code <strong className="font-bold text-ink">123456</strong>):
+                      </p>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="123456"
+                          value={otpCode}
+                          onChange={(e) => setOtpCode(e.target.value)}
+                          className="input-field text-center font-mono text-sm max-w-[120px] py-1.5 px-3"
+                          maxLength={6}
+                        />
+                        <button
+                          onClick={handleConfirmOTP}
+                          disabled={otpLoading}
+                          className="btn-primary py-1.5 px-4 text-xs font-semibold"
+                        >
+                          {otpLoading ? <span className="spinner" /> : 'Confirm OTP'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {payResult.decision === 'decline' && (
               <div className="flex items-start gap-3 p-4 bg-warn-muted border border-warn-border rounded-card">
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-warn shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                 </svg>
                 <div className="flex-1">
-                  <p className="text-xs font-semibold text-warn">Human review required</p>
-                  <p className="text-2xs text-ink-2 mt-0.5">The AI flagged this transaction. Open the Agent Workspace to chat with the AI analyst and override or confirm the decision.</p>
+                  <p className="text-xs font-semibold text-warn">Transaction Declined</p>
+                  <p className="text-2xs text-ink-2 mt-0.5">The AI engine declined this transaction. Open the Agent Workspace to chat with the AI analyst and request an override policy.</p>
                 </div>
                 <button
                   onClick={() => { window.location.hash = '#/agent'; }}
