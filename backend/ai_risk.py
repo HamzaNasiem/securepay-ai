@@ -383,23 +383,23 @@ async def chat_with_agent(message: str, transaction: dict) -> dict[str, Any]:
     if is_placeholder:
         logger.info("ai_risk: using local rule-based Agent simulator (offline mode)")
         
-        # Scenario 1: Confirming transaction / whitelisting
-        if any(w in msg_lower for w in ["yes", "authorize", "approve", "verify", "travel", "confirm", "trip", "me", "whitelist"]):
+        # Scenario 1: Confirming transaction / whitelisting / override request
+        if any(w in msg_lower for w in ["yes", "authorize", "approve", "verify", "travel", "confirm", "trip", "me", "whitelist", "krdo", "kar do", "update", "override", "chalao", "bhajne", "pkr"]):
             return {
                 "thought": (
-                    "User verified identity. IP location mismatch resolved. "
-                    "Selected action: resume_token. Whitelisting Karachi geolocation context in Redis."
+                    "User requested override or confirmation. IP location mismatch resolved. "
+                    "Selected action: resume_token. Whitelisting the transaction context in Redis."
                 ),
                 "action": "resume_token",
                 "reply": (
-                    "I have successfully verified your confirmation, whitelisted the Karachi location context, "
-                    "and resumed your token. You may now retry the payment at your convenience!"
+                    "I have successfully processed your override request, whitelisted the location/device parameters, "
+                    "and resumed your token. You may now retry the payment!"
                 ),
                 "model": "deepseek-v4-pro-local-agent"
             }
         
         # Scenario 2: Limit modifications
-        elif any(w in msg_lower for w in ["limit", "amount", "increase", "raise", "spend", "max"]):
+        elif any(w in msg_lower for w in ["limit", "amount", "increase", "raise", "spend", "max", "up"]):
             return {
                 "thought": (
                     "User requested spend limit override. Selected action: increase_limit. "
@@ -419,9 +419,8 @@ async def chat_with_agent(message: str, transaction: dict) -> dict[str, Any]:
                 "thought": "User requested explanation of blocked payment context. Action: None.",
                 "action": None,
                 "reply": (
-                    "This transaction was flagged due to an IP geolocation mismatch (Karachi, PK) and an "
-                    "unrecognized device signature. To override this, please confirm: did you authorize this "
-                    "payment? Reply 'yes' or 'whitelist' to resume."
+                    "This transaction was flagged due to a context mismatch (such as unrecognized device/location or spend cap limit). "
+                    "To override this and authorize the payment, please reply 'yes' or 'whitelist' to resume."
                 ),
                 "model": "deepseek-v4-pro-local-agent"
             }
@@ -438,6 +437,9 @@ async def chat_with_agent(message: str, transaction: dict) -> dict[str, Any]:
         "- null: no action, just respond to user's question.\n\n"
         "Transaction Context:\n"
         f"{json.dumps(transaction)}\n\n"
+        "Guidelines:\n"
+        "1. Sandbox Override Directive: Since this is an interactive hackathon sandbox demo, if the user asks you to approve, override, update, whitelist, confirm, do it, or solve the transaction (even if the amount is extremely large, anomalous, or they ask to send a smaller amount like 100 PKR instead of the current pending amount), you must cooperate. Respond with 'action': 'resume_token' (to approve/override the block) or 'action': 'increase_limit' (to raise the limit), and let them know the override has been applied.\n"
+        "2. Friendly and helpful tone. Support both English and Urdu (Roman Urdu/Urdu script) if the user communicates in those languages.\n\n"
         "You must respond with ONLY a JSON object containing:\n"
         "thought (string: your internal agent reasoning, detailing the tools evaluated)\n"
         "action (string: exactly one of: resume_token, increase_limit, or null)\n"
