@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hamza Nasiem — Hackathon Portfolio</title>
+  <meta name="description" content="Hackathon submissions and engineering projects by Hamza Nasiem. Featuring hardware-accelerated AI and fintech security systems.">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="Hamza Nasiem — Hackathon Portfolio">
+  <meta property="og:description" content="Hackathon submissions and engineering projects by Hamza Nasiem. Featuring SecurePay AI.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://imhamza.com/hackathon">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #07070a;
+      --bg-card: #0e0e16;
+      --bg-card-hover: #141420;
+      --border: #1f1f2e;
+      --border-hover: #2e2e42;
+      --accent: #c15f3c; /* AMD-inspired Rust Orange */
+      --accent-glow: rgba(193, 95, 60, 0.15);
+      --accent-hover: #d8704a;
+      --text: #e2e8f0;
+      --text-muted: #8892b0;
+      --text-highlight: #ffffff;
+      --ok: #10b981;
+      --ok-glow: rgba(16, 185, 129, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Background Grids & Orbs */
+    .bg-elements {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .grid-lines {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .orb-1 {
+      position: absolute;
+      top: -20%;
+      left: -10%;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      filter: blur(80px);
+      animation: float 20s infinite alternate ease-in-out;
+    }
+
+    .orb-2 {
+      position: absolute;
+      bottom: -10%;
+      right: -10%;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, transparent 70%);
+      filter: blur(80px);
+      animation: float 25s infinite alternate-reverse ease-in-out;
+    }
+
+    @keyframes float {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(40px, 40px) scale(1.1); }
+    }
+
+    /* Container */
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header / Nav */
+    header {
+      padding: 40px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-b: 1px solid var(--border);
+    }
+
+    .brand {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 1.2rem;
+      letter-spacing: -0.02em;
+      color: var(--text-highlight);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+    }
+
+    .back-link {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .back-link:hover {
+      color: var(--text-highlight);
+    }
+
+    /* Hero */
+    .hero {
+      padding: 80px 0 60px 0;
+      text-align: center;
+    }
+
+    .hero-eyebrow {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    .hero-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text-highlight);
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+
+    .hero-desc {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto;
+      font-weight: 300;
+    }
+
+    /* Hackathon Grid */
+    .portfolio-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+      padding-bottom: 100px;
+    }
+
+    /* Timeline Card */
+    .hackathon-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hackathon-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+    }
+
+    .card-glow {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.8;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+      position: relative;
+      z-index: 1;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .card-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .hackathon-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text-highlight);
+      letter-spacing: -0.01em;
+    }
+
+    .hackathon-date {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .status-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 6px 12px;
+      border-radius: 20px;
+      background-color: var(--ok-glow);
+      color: var(--ok);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.05);
+      display: inline-block;
+    }
+
+    .project-section {
+      position: relative;
+      z-index: 1;
+      margin-bottom: 24px;
+    }
+
+    .project-name {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .project-desc {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      max-width: 800px;
+    }
+
+    /* Key features */
+    .features-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-highlight);
+      margin-bottom: 12px;
+    }
+
+    .features-list {
+      list-style: none;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    @media (min-width: 640px) {
+      .features-list {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .feature-item {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .feature-item strong {
+      color: var(--text-highlight);
+      font-weight: 600;
+    }
+
+    .feature-check {
+      color: var(--accent);
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+
+    /* Tech Stack Chips */
+    .tech-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 32px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .tech-chip {
+      font-size: 0.75rem;
+      font-family: monospace;
+      background-color: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+
+    .tech-chip:hover {
+      border-color: var(--accent);
+      color: var(--text-highlight);
+    }
+
+    /* Card Actions */
+    .card-actions {
+      display: flex;
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background-color: var(--accent);
+      color: var(--text-highlight);
+      border: 1px solid transparent;
+      box-shadow: 0 4px 14px rgba(193, 95, 60, 0.25);
+    }
+
+    .btn-primary:hover {
+      background-color: var(--accent-hover);
+      box-shadow: 0 6px 20px rgba(193, 95, 60, 0.35);
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--border-hover);
+      background-color: rgba(255, 255, 255, 0.02);
+      color: var(--text-highlight);
+    }
+
+    /* Empty state card */
+    .empty-card {
+      border: 2px dashed var(--border);
+      background-color: transparent;
+      border-radius: 16px;
+      padding: 48px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+      transition: border-color 0.3s;
+    }
+
+    .empty-card:hover {
+      border-color: var(--accent-glow);
+    }
+
+    .empty-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .empty-desc {
+      font-size: 0.85rem;
+      color: rgba(136, 146, 176, 0.6);
+      max-width: 320px;
+    }
+
+    /* Footer */
+    footer {
+      border-t: 1px solid var(--border);
+      padding: 60px 0 40px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      text-align: center;
+    }
+
+    .social-links {
+      display: flex;
+      gap: 20px;
+    }
+
+    .social-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+
+    .social-link:hover {
+      color: var(--accent);
+    }
+
+    .copyright {
+      font-size: 0.75rem;
+      color: rgba(136, 146, 176, 0.5);
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .hero {
+        padding: 40px 0;
+      }
+      .hackathon-card {
+        padding: 24px;
+      }
+      .project-name {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background Grids & Orbs -->
+  <div class="bg-elements">
+    <div class="grid-lines"></div>
+    <div class="orb-1"></div>
+    <div class="orb-2"></div>
+  </div>
+
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <a href="https://imhamza.com" class="brand">
+        <div class="brand-dot"></div>
+        Hamza Nasiem
+      </a>
+      <a href="https://imhamza.com" class="back-link">← Back to Home</a>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-eyebrow">Hackathon Portfolio</div>
+      <h1 class="hero-title">Engineering Solutions</h1>
+      <p class="hero-desc">A collection of custom builds, AI architectures, and sandbox prototypes submitted to global developer hackathons.</p>
+    </section>
+
+    <!-- Hackathons Timeline Grid -->
+    <section class="portfolio-grid">
+
+      <!-- Entry 1: AMD Hackathon -->
+      <div class="hackathon-card">
+        <div class="card-glow"></div>
+        
+        <div class="card-header">
+          <div class="card-meta">
+            <h3 class="hackathon-title">AMD Developer Hackathon: ACT II</h3>
+            <span class="hackathon-date">July 2026 · Unicorn Track (Startup & Innovation)</span>
+          </div>
+          <span class="status-badge">Submitted</span>
+        </div>
+
+        <div class="project-section">
+          <h2 class="project-name">SecurePay AI 🛡️</h2>
+          <p class="project-desc">
+            SecurePay AI is an enterprise-grade disposable tokenization and fraud prevention ecosystem built to eliminate credit card data leaks. It issues merchant-locked, spend-capped virtual card tokens and runs real-time transaction risk scoring with plain-language explanation heuristics.
+          </p>
+
+          <div class="features-title">Core Features & Architecture</div>
+          <ul class="features-list">
+            <li class="feature-item">
+              <span class="feature-check">✓</span>
+              <span><strong>Zero-Leak Card Vault:</strong> Encrypts raw primary card details offline with AES-256-GCM. Merchants only touch disposable virtual tokens.</span>
+            </li>
+            <li class="feature-item">
+              <span class="feature-check">✓</span>
+              <span><strong>Explainable AI Analyst:</strong> DeepSeek V4 / Gemma 2 hosted on AMD Instinct hardware writes natural-language audit reasoning for security clearances.</span>
+            </li>
+            <li class="feature-item">
+              <span class="feature-check">✓</span>
+              <span><strong>Subscription Kill Switch:</strong> One-click instant active subscription revocation that invalidates downstream Redis token configurations.</span>
+            </li>
+            <li class="feature-item">
+              <span class="feature-check">✓</span>
+              <span><strong>Sandbox Guided Tour Mode:</strong> An interactive, 5-step checkout console designed to easily walk judges through complex token flows.</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="tech-stack">
+          <span class="tech-chip">FastAPI</span>
+          <span class="tech-chip">React (Vite)</span>
+          <span class="tech-chip">Redis Cache</span>
+          <span class="tech-chip">SQLite (Encrypted)</span>
+          <span class="tech-chip">Docker Compose</span>
+          <span class="tech-chip">AMD ROCm 7.2</span>
+          <span class="tech-chip">DeepSeek V4 Pro</span>
+          <span class="tech-chip">Fireworks AI</span>
+        </div>
+
+        <div class="card-actions">
+          <a href="https://github.com/HamzaNasiem/securepay-ai" target="_blank" class="btn btn-primary">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: middle;">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+            </svg>
+            GitHub Repository
+          </a>
+          <a href="https://github.com/HamzaNasiem/securepay-ai" class="btn btn-secondary">
+            Project Architecture Docs
+          </a>
+        </div>
+      </div>
+
+      <!-- Future placeholder card -->
+      <div class="empty-card">
+        <div class="empty-title">More Hackathons Coming Soon</div>
+        <p class="empty-desc">Future developer submissions, local telemetry tools, and AI prototypes will be documented here.</p>
+      </div>
+
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <div class="social-links">
+        <a href="https://linkedin.com/in/hamzanasiem" target="_blank" class="social-link">LinkedIn</a>
+        <a href="https://github.com/HamzaNasiem" target="_blank" class="social-link">GitHub</a>
+        <a href="https://imhamza.com" class="social-link">Personal Website</a>
+      </div>
+      <div class="copyright">
+        &copy; 2026 Hamza Nasiem. Built for portfolio routing at imhamza.com/hackathon.
+      </div>
+    </footer>
+  </div>
+
+</body>
+</html>
