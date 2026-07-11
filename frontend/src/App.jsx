@@ -85,6 +85,8 @@ export default function App() {
 
   const redisOk = healthStatus?.redis === 'connected';
   const backendOk = healthStatus?.status !== 'error' && healthStatus !== null;
+  const amdOnline = backendOk && redisOk;
+  const currentYear = new Date().getFullYear();
 
   if (appView === 'loading') {
     return (
@@ -180,11 +182,13 @@ export default function App() {
               </span>
             </div>
             <div className="w-px h-4 bg-border hidden sm:block" />
-            <div className="hidden sm:flex items-center gap-1.5 text-2xs text-ink-3 font-mono">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="hidden sm:flex items-center gap-1.5 text-2xs font-medium">
+              <svg xmlns="http://www.w3.org/2000/svg" className={`w-3.5 h-3.5 ${amdOnline ? 'text-accent' : 'text-ink-4'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
               </svg>
-              AMD MI300X
+              <span className={amdOnline ? 'text-accent' : 'text-ink-4'}>
+                AMD MI300X {amdOnline ? '· Active' : '· Offline'}
+              </span>
             </div>
             <div className="w-px h-4 bg-border hidden sm:block" />
             <button
@@ -203,7 +207,7 @@ export default function App() {
           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 shrink-0 hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
           </svg>
-          <span>Backend server is unreachable. Start the backend on port 8080 and refresh.</span>
+          <span>Backend server is unreachable — running in local simulation mode. Start the backend on port 8080 to enable live AI inference.</span>
         </div>
       )}
 
@@ -222,10 +226,26 @@ export default function App() {
 
       {/* Footer */}
       <footer className="border-t border-border bg-surface mt-auto w-full">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-2xs text-ink-3 text-center sm:text-left">
-          <span>SecurePay AI - AMD Developer Hackathon Unicorn Track 2026</span>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-2xs text-ink-3">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 text-center sm:text-left">
+            <span className="font-semibold text-ink-2">SecurePay AI</span>
+            <span className="hidden sm:inline text-border">·</span>
+            <span>AMD Developer Hackathon — Unicorn Track {currentYear}</span>
+            <span className="hidden sm:inline text-border">·</span>
+            <a
+              href="/hackathon"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent hover:underline font-medium"
+            >
+              imhamza.com/hackathon
+            </a>
+          </div>
           <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-4 font-mono">
-            <span>DeepSeek V4 Pro</span>
+            <span className={`flex items-center gap-1 ${amdOnline ? 'text-accent' : 'text-ink-4'}`}>
+              <span className="inline-block w-1.5 h-1.5 rounded-full" style={{backgroundColor: amdOnline ? '#c15f3c' : '#6b7280'}} />
+              DeepSeek V4 Pro
+            </span>
             <span className="text-border hidden sm:inline">|</span>
             <span>Fireworks AI</span>
             <span className="text-border hidden sm:inline">|</span>

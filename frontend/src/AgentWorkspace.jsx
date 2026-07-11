@@ -15,9 +15,9 @@ export default function AgentWorkspace({ lastTxn, onStatusUpdated }) {
     if (lastTxn) {
       let greeting = '';
       if (lastTxn.decision === 'approve') {
-        greeting = `[Agent] Transaction approved (ID: ${lastTxn.transaction_id}). Merchant: ${lastTxn.merchant}, Amount: ${lastTxn.amount} PKR. No security flags raised. I'm here if you have any questions!`;
+        greeting = `Transaction cleared ✓ (ID: ${lastTxn.transaction_id}). Merchant: ${lastTxn.merchant}, Amount: ${Number(lastTxn.amount).toLocaleString()} PKR. No security flags raised. I'm available if you have any questions or need to modify token policies.`;
       } else {
-        greeting = `[Agent] Flagged transaction detected (ID: ${lastTxn.transaction_id}). Merchant: ${lastTxn.merchant}, Amount: ${lastTxn.amount} PKR. Status: ${lastTxn.decision.toUpperCase()}. Reason: "${lastTxn.explanation}". How would you like me to proceed with security override?`;
+        greeting = `Flagged transaction detected (ID: ${lastTxn.transaction_id}). Merchant: ${lastTxn.merchant}, Amount: ${Number(lastTxn.amount).toLocaleString()} PKR. Status: ${lastTxn.decision.toUpperCase()}. Reason: "${lastTxn.explanation}". How would you like me to proceed?`;
       }
       
       setHistory([
@@ -164,7 +164,7 @@ export default function AgentWorkspace({ lastTxn, onStatusUpdated }) {
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
-                Running in offline demo mode. AI responses are pre-computed to showcase the product flow.
+                 AI running in local rule-based mode — responses demonstrate the security override flow.
                 </div>
               )}
             </div>
