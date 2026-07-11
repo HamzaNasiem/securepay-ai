@@ -76,7 +76,16 @@ FRONTEND_ORIGIN=http://localhost:3000
 ```
 
 ### 2. Launch the Stack
-Run Docker Compose to pull dependencies, compile the React build, and boot up all services:
+You can start the project in two ways:
+
+#### Option A: Pull Pre-built Registry Images (Fastest ⚡)
+Run the application instantly without building files locally. The images are pre-compiled and served directly from GitHub Container Registry (GHCR):
+```bash
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+#### Option B: Build and Run Locally
+Build and compile the multi-stage images from scratch:
 ```bash
 docker-compose up --build -d
 ```
