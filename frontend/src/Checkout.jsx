@@ -224,6 +224,7 @@ function StepDot({ state }) {
 }
 
 export default function Checkout({ onTransactionComplete }) {
+  const [tourStep, setTourStep] = useState(1);
   const [merchant, setMerchant] = useState(MERCHANTS[0]);
   const [loading, setLoading] = useState(false);
   const [tokenData, setTokenData] = useState(null);
@@ -322,6 +323,7 @@ export default function Checkout({ onTransactionComplete }) {
     setIsEditingLimit(false);
     setEditLimitAmount('');
     setShowRawToken(false);
+    setTourStep(1);
     clearTimeout(timerRef.current);
   };
 
@@ -443,7 +445,170 @@ export default function Checkout({ onTransactionComplete }) {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+    <div className="space-y-6 animate-in fade-in duration-300">
+      
+      {/* 🚀 Guided Hackathon Tour Card */}
+      <div className="card p-6 border-l-4 border-l-accent relative overflow-hidden bg-surface-2 shadow-lg">
+        {/* Gradients */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 rounded-full blur-2xl pointer-events-none" />
+
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4 mb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="badge badge-accent uppercase tracking-wider text-4xs font-extrabold animate-pulse">💡 Tour Mode Active</span>
+              <h2 className="text-base font-bold text-ink">SecurePay AI Sandbox Playground</h2>
+            </div>
+            <p className="text-2xs text-ink-3 mt-1">
+              Follow this step-by-step interactive sandbox to evaluate the product. Running in real-time on AMD MI300X accelerators.
+            </p>
+          </div>
+          
+          {/* Steps Navigator */}
+          <div className="flex items-center gap-1.5 bg-surface border border-border rounded-lg p-1.5 self-start md:self-auto">
+            {[1, 2, 3, 4, 5].map(i => (
+              <button
+                key={i}
+                onClick={() => setTourStep(i)}
+                className={`w-6 h-6 rounded-md text-2xs font-bold transition-all ${
+                  tourStep === i 
+                    ? 'bg-accent text-white shadow-sm' 
+                    : 'text-ink-3 hover:bg-surface-2'
+                }`}
+              >
+                {i}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Step details content */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+          <div className="lg:col-span-8 space-y-1.5">
+            <span className="text-3xs uppercase font-extrabold text-accent tracking-widest font-mono">
+              STEP {tourStep} of 5: {
+                tourStep === 1 ? "Select Preset Scenario" :
+                tourStep === 2 ? "Issue Disposable Payment Token" :
+                tourStep === 3 ? "Process Merchant Checkout" :
+                tourStep === 4 ? "AMD Instinct™ Accelerated AI Risk Analysis" :
+                "Revoke Token Access (Kill Switch)"
+              }
+            </span>
+            <p className="text-xs text-ink-2 leading-relaxed font-sans">
+              {
+                tourStep === 1 ? "Start by setting up the scenario. We have pre-configured Netflix (low-risk subscription) and CryptoBazaar (high-risk untrusted merchant) to demonstrate the AI engine's behavior. Click the button below to auto-select Netflix." :
+                tourStep === 2 ? "We will generate a mock payment card. Under the hood, this token is cryptographically locked to Netflix and capped at a maximum spend of 1,200 PKR. If hackers steal this token, it cannot be used elsewhere!" :
+                tourStep === 3 ? "Now we simulate entering this token on Netflix's payment form. Under the 'Merchant terminal view' on the right, observe that the merchant ONLY receives the disposable token. The real card details are completely protected!" :
+                tourStep === 4 ? "We execute the AI fraud engine. Running on AMD hardware, the DeepSeek V4 model evaluates location mismatches, unrecognized devices, and transaction velocities in real-time, outputting plain-language reasons." :
+                "Your payment was evaluated! Now switch to the 'Risk Dashboard' tab to trigger a mock data breach, or use the 'Kill Switch' under Active Subscriptions to instantly block Netflix from making future charges."
+              }
+            </p>
+          </div>
+
+          <div className="lg:col-span-4 flex justify-end">
+            {tourStep === 1 && (
+              <button
+                onClick={() => {
+                  playSound('click');
+                  const found = MERCHANTS.find(m => m.name === 'Netflix');
+                  if (found) setMerchant(found);
+                  setTourStep(2);
+                }}
+                className="btn-primary w-full lg:w-auto text-xs py-2 px-4 shadow-[0_0_15px_rgba(193,95,60,0.2)]"
+              >
+                Auto-Select Netflix Scenario ➔
+              </button>
+            )}
+
+            {tourStep === 2 && (
+              <button
+                onClick={async () => {
+                  setTourStep(3);
+                  await handleGenerate();
+                }}
+                disabled={loading}
+                className="btn-primary bg-accent hover:bg-accent/90 text-white w-full lg:w-auto text-xs py-2 px-4 flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(193,95,60,0.3)]"
+              >
+                {loading ? <span className="spinner" /> : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 9h7.5L9 20.25 10.5 13.5H3.75z" />
+                    </svg>
+                    Generate Token ⚡
+                  </>
+                )}
+              </button>
+            )}
+
+            {tourStep === 3 && (
+              <button
+                onClick={async () => {
+                  setTourStep(4);
+                  await handleSendToMerchant();
+                }}
+                disabled={loading}
+                className="btn-primary bg-accent hover:bg-accent/90 text-white w-full lg:w-auto text-xs py-2 px-4 flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(193,95,60,0.3)]"
+              >
+                {loading ? <span className="spinner" /> : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                    Send to Checkout ➔
+                  </>
+                )}
+              </button>
+            )}
+
+            {tourStep === 4 && (
+              <button
+                onClick={async () => {
+                  setTourStep(5);
+                  await handleSettle();
+                }}
+                disabled={loading}
+                className="btn-primary bg-accent hover:bg-accent/90 text-white w-full lg:w-auto text-xs py-2 px-4 flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(193,95,60,0.3)]"
+              >
+                {loading ? <span className="spinner" /> : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                    </svg>
+                    Run AI Risk Analysis 🧠
+                  </>
+                )}
+              </button>
+            )}
+
+            {tourStep === 5 && (
+              <div className="flex gap-2 w-full lg:w-auto">
+                <button
+                  onClick={() => {
+                    playSound('click');
+                    window.location.hash = '#/dashboard';
+                    reset();
+                    setTourStep(1);
+                  }}
+                  className="btn-primary w-full lg:w-auto text-xs py-2 px-4 shadow-[0_0_15px_rgba(193,95,60,0.2)]"
+                >
+                  Go to Dashboard 🛡️
+                </button>
+                <button
+                  onClick={() => {
+                    playSound('click');
+                    reset();
+                    setTourStep(1);
+                  }}
+                  className="btn-secondary w-full lg:w-auto text-xs py-2 px-4"
+                >
+                  Restart Tour 🔄
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
 
       {/* LEFT - Scenario picker */}
       <div className="lg:col-span-2 space-y-4">
@@ -1040,6 +1205,7 @@ export default function Checkout({ onTransactionComplete }) {
           </div>
         )}
       </div>
+    </div>
       {toastMsg && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-ink-2 text-white px-6 py-3 rounded-card text-sm font-medium shadow-xl z-50 animate-in fade-in slide-in-from-bottom-4">
           {toastMsg}
