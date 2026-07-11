@@ -1,8 +1,14 @@
 """
 ai_risk.py — SecurePay AI
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Calls Fireworks AI (DeepSeek V4 Pro — running on AMD-hosted infrastructure)
+Calls Fireworks AI (Google Gemma 3 27B IT — running on AMD Instinct MI300X GPUs)
 with a strict JSON-in / JSON-out contract and defensively parses the response.
+
+Primary Model: Google Gemma 3 27B IT (accounts/fireworks/models/gemma-3-27b-it)
+  — Qualifies for AMD Developer Hackathon "Best AMD-Hosted Gemma Project" prize ($2,000)
+  — Served exclusively on AMD Instinct MI300X hardware via Fireworks AI Cloud
+Fallback: DeepSeek V4 Pro (accounts/fireworks/models/deepseek-v4-pro)
+Local Fast-Path: XGBoost ML (<1ms) — circuit breaker & micro-transaction bypass
 
 On ANY failure (network error, bad JSON, invalid fields, timeout) this module
 returns a safe fallback instead of raising — the payment flow is never blocked
@@ -49,7 +55,7 @@ logger = logging.getLogger(__name__)
 # ──────────────────────────────────────────────────────────────────────────────
 # System prompt — exact text from API_Contract.md §5
 # ──────────────────────────────────────────────────────────────────────────────
-_SYSTEM_PROMPT = """You are an Enterprise Payment Risk Analyst AI (DeepSeek Fraud Engine).
+_SYSTEM_PROMPT = """You are an Enterprise Payment Risk Analyst AI (Gemma 3 Fraud Engine — running on AMD Instinct MI300X GPUs via Fireworks AI).
 Your task is to evaluate transaction metadata as JSON and return a risk assessment.
 
 Apply the following strict heuristics and behavioral analysis:
@@ -286,7 +292,7 @@ async def score_transaction(payload: dict, txn_id: str = None) -> dict:
     # 3. Otherwise: Attempt Fireworks API call using the Circuit Breaker!
     api_key  = os.environ.get("FIREWORKS_API_KEY",  "").strip()
     base_url = os.environ.get("FIREWORKS_BASE_URL", "https://api.fireworks.ai/inference/v1").strip()
-    model    = os.environ.get("FIREWORKS_MODEL",    "accounts/fireworks/models/deepseek-v4-pro").strip()
+    model    = os.environ.get("FIREWORKS_MODEL",    "accounts/fireworks/models/gemma-3-27b-it").strip()
 
     is_placeholder = not api_key or "your_fireworks_key" in api_key or "fw_your_api_key" in api_key
 
