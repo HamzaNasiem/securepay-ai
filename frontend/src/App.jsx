@@ -211,12 +211,15 @@ export default function App() {
 
       {/* Page content */}
       <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8">
-        {activeTab === 'checkout'
-          ? <Checkout onTransactionComplete={handleTransactionComplete} />
-          : activeTab === 'agent'
-          ? <AgentWorkspace lastTxn={lastTxn} onStatusUpdated={() => setRefreshTrigger(n => n + 1)} />
-          : <Dashboard refreshTrigger={refreshTrigger} />
-        }
+        <div style={{ display: activeTab === 'checkout' ? 'block' : 'none' }}>
+          <Checkout onTransactionComplete={handleTransactionComplete} />
+        </div>
+        <div style={{ display: activeTab === 'agent' ? 'block' : 'none' }}>
+          <AgentWorkspace lastTxn={lastTxn} onStatusUpdated={() => setRefreshTrigger(n => n + 1)} />
+        </div>
+        <div style={{ display: activeTab === 'dashboard' ? 'block' : 'none' }}>
+          <Dashboard refreshTrigger={refreshTrigger} />
+        </div>
       </main>
 
       {/* Footer */}

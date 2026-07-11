@@ -105,14 +105,19 @@ export default function AgentWorkspace({ lastTxn, onStatusUpdated }) {
       
       {/* LEFT COLUMN - Agent Reasoning Terminal (Chain-of-Thought logs) */}
       <div className="lg:col-span-2 flex flex-col bg-ink text-green-400 p-5 rounded-card border border-ink-4 font-mono text-xs overflow-hidden shadow-lg select-none">
-        <div className="flex items-center justify-between pb-3 border-b border-ink-5 mb-3">
-          <div className="flex items-center gap-2">
-            <div className="w-3.5 h-3.5 rounded bg-green-500/20 flex items-center justify-center">
-              <span className="live-dot" style={{color:'#22c55e', width:5, height:5}} />
+        <div className="flex items-start justify-between pb-3 border-b border-ink-5 mb-3">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <div className="w-3.5 h-3.5 rounded bg-green-500/20 flex items-center justify-center">
+                <span className="live-dot" style={{color:'#22c55e', width:5, height:5}} />
+              </div>
+              <span className="text-2xs font-semibold tracking-wider uppercase text-green-300">Agent Reasoning Console</span>
             </div>
-            <span className="text-2xs font-semibold tracking-wider uppercase text-green-300">Agent Reasoning Console</span>
+            <p className="text-3xs text-ink-3 tracking-normal normal-case opacity-80 mt-1 pr-4">
+              This console displays the AI's internal "Chain of Thought". It shows how the AI is evaluating your input, calling tools, and updating database rules.
+            </p>
           </div>
-          <span className="text-3xs text-ink-3 uppercase">AI CoT Log</span>
+          <span className="text-3xs text-ink-3 uppercase shrink-0">AI CoT Log</span>
         </div>
         
         <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 max-h-[450px]">
@@ -140,13 +145,21 @@ export default function AgentWorkspace({ lastTxn, onStatusUpdated }) {
       {/* RIGHT COLUMN - Interactive Chat Panel */}
       <div className="lg:col-span-3 card p-5 flex flex-col justify-between shadow-sm relative overflow-hidden">
         <div>
-          <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
+          <div className="flex items-start justify-between pb-3 border-b border-border mb-4">
             <div>
               <h3 className="text-sm font-semibold text-ink">AI Security Analyst</h3>
-              <p className="text-2xs text-ink-3">Ask questions or confirm transactions to override security policies</p>
+              <p className="text-2xs text-ink-3 mt-1">
+                Chat with the AI to verify flagged transactions using natural language.
+              </p>
+              <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded bg-amber-500/10 text-amber-700 text-3xs font-medium border border-amber-500/20">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Local Fallback Mode Active. Responses are currently static because the Fireworks API key is missing.
+              </div>
             </div>
             {lastTxn && (
-              <span className="badge badge-warn text-3xs font-mono uppercase">
+              <span className="badge badge-warn text-3xs font-mono uppercase shrink-0 ml-4">
                 Override Target: {lastTxn.token_masked}
               </span>
             )}
