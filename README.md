@@ -97,9 +97,9 @@ Once started, the services will be live at:
 
 ---
 
-## 📦 Publishing Production Images
+## 📦 Manual Registry Publishing (Optional)
 
-To manually build and push optimized production images to a Docker registry (e.g. Docker Hub):
+If you want to manually build and push images to your own Docker registry (like Docker Hub) instead of using our automated GitHub Actions workflow:
 
 ```bash
 # 1. Log in to your registry
