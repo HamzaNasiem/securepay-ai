@@ -345,11 +345,22 @@ export default function Checkout({ onTransactionComplete }) {
 
   const handleGenerate = async () => {
     playSound('click');
+    
+    const targetName = merchant.name === 'Custom Merchant' ? customName : merchant.name;
+    const targetAmount = merchant.name === 'Custom Merchant' ? Number(customAmount) : merchant.amount;
+
+    if (isNaN(targetAmount) || targetAmount <= 0) {
+      showToast('Please enter a valid amount.');
+      return;
+    }
+
+    if (targetAmount > 10000000) {
+      showToast('Amount exceeds maximum limit of 10,000,000 PKR.');
+      return;
+    }
+
     setLoading(true);
     try {
-      const targetName = merchant.name === 'Custom Merchant' ? customName : merchant.name;
-      const targetAmount = merchant.name === 'Custom Merchant' ? Number(customAmount) : merchant.amount;
-
       const data = await generateToken(
         targetName,
         targetAmount,
@@ -362,8 +373,13 @@ export default function Checkout({ onTransactionComplete }) {
       setTimeLeft(300);
       setStep('generated');
       localStorage.setItem(`raw_${masked}`, data.token);
-    } catch {
-      showToast('Could not reach backend. Make sure uvicorn is running on port 8080.');
+    } catch (err) {
+      const serverError = err.response?.data?.detail;
+      if (serverError) {
+        showToast(typeof serverError === 'string' ? serverError : JSON.stringify(serverError));
+      } else {
+        showToast('Could not reach backend. Make sure uvicorn is running on port 8080.');
+      }
     } finally {
       setLoading(false);
     }
