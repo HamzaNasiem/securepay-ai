@@ -296,6 +296,10 @@ export default function Checkout({ onTransactionComplete }) {
       showToast('Please enter a valid amount.');
       return;
     }
+    if (amt > 10_000_000) {
+      showToast('Max spend limit is 10,000,000 PKR.');
+      return;
+    }
     setLoading(true);
     try {
       await updateTokenLimit(tokenData.token, amt);
@@ -583,7 +587,7 @@ export default function Checkout({ onTransactionComplete }) {
                 tourStep === 1 ? "Start by setting up the scenario. We have pre-configured Netflix (low-risk subscription) and CryptoBazaar (high-risk untrusted merchant) to demonstrate the AI engine's behavior. Click the button below to auto-select Netflix." :
                 tourStep === 2 ? "We will generate a mock payment card. Under the hood, this token is cryptographically locked to Netflix and capped at a maximum spend of 1,200 PKR. If hackers steal this token, it cannot be used elsewhere!" :
                 tourStep === 3 ? "Now we simulate entering this token on Netflix's payment form. Under the 'Merchant terminal view' on the right, observe that the merchant ONLY receives the disposable token. The real card details are completely protected!" :
-                tourStep === 4 ? "We execute the AI fraud engine. Running on AMD hardware, the DeepSeek V4 model evaluates location mismatches, unrecognized devices, and transaction velocities in real-time, outputting plain-language reasons." :
+                tourStep === 4 ? "We execute the AI fraud engine. Running on AMD Instinct MI300X hardware via Fireworks AI, the Google Gemma 3 27B model evaluates location mismatches, unrecognized devices, and transaction velocities in real-time, outputting plain-language Explainable AI reasons." :
                 "Your payment was evaluated! Now switch to the 'Risk Dashboard' tab to trigger a mock data breach, or use the 'Kill Switch' under Active Subscriptions to instantly block Netflix from making future charges."
               }
             </p>

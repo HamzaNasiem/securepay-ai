@@ -166,7 +166,7 @@ app.include_router(merchant_router)
 class GenerateTokenRequest(BaseModel):
     merchant:    str   = Field(..., min_length=1, max_length=100,
                                examples=["Netflix"])
-    amount:      float = Field(..., gt=0, examples=[1200.0])
+    amount:      float = Field(..., gt=0, lt=10_000_000, description="Amount in PKR (max 10,000,000)", examples=[1200.0])
     currency:    str   = Field(default="PKR", max_length=3, examples=["PKR"])
     ttl_seconds: int   = Field(default=300, ge=30, le=3600,
                                description="Token lifetime in seconds (30–3600)")
@@ -229,7 +229,7 @@ class PayRequest(BaseModel):
     token:    str             = Field(..., min_length=16, max_length=16,
                                      description="16-digit payment token")
     merchant: str             = Field(..., min_length=1)
-    amount:   float           = Field(..., gt=0)
+    amount:   float           = Field(..., gt=0, lt=10_000_000, description="Amount in PKR (max 10,000,000)")
     metadata: PaymentMetadata = Field(default_factory=PaymentMetadata)
 
 
@@ -244,7 +244,7 @@ class UpdateTokenStatusRequest(BaseModel):
 
 class UpdateTokenLimitRequest(BaseModel):
     token: str = Field(..., min_length=16, max_length=16)
-    amount: float = Field(..., gt=0)
+    amount: float = Field(..., gt=0, lt=10_000_000, description="New spend limit in PKR (max 10,000,000)")
 
 
 class SimulateBreachRequest(BaseModel):
@@ -934,6 +934,22 @@ async def api_circuit_breaker_telemetry():
     """
     from circuit_breaker import fireworks_circuit_breaker
     return fireworks_circuit_breaker.get_status()
+
+
+@app.post("/telemetry/circuit-breaker/reset", tags=["Telemetry"])
+async def api_circuit_breaker_reset():
+    """
+    Manually reset the circuit breaker to CLOSED state.
+    Use this when Fireworks AI API has recovered and you want to re-enable live AI scoring.
+    """
+    from circuit_breaker import fireworks_circuit_breaker
+    fireworks_circuit_breaker.record_success()
+    fireworks_circuit_breaker.failure_count = 0
+    return {
+        "message": "Circuit breaker reset to CLOSED state",
+        "state": "closed",
+        "failure_count": 0
+    }
 
 
 @app.get("/telemetry/vault", tags=["Telemetry"])

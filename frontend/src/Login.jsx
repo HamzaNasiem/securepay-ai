@@ -226,7 +226,7 @@ export default function Login({ onLogin }) {
         </div>
 
         <div className="mt-4 pt-4 border-t border-white/10 text-center">
-          <p className="text-xs text-ink-4">Powered by <span className="font-semibold text-white">AMD Infrastructure</span> &amp; <span className="font-semibold text-white">DeepSeek V4 Pro</span></p>
+          <p className="text-xs text-ink-4">Powered by <span className="font-semibold text-white">AMD Infrastructure</span> &amp; <span className="font-semibold text-white">Google Gemma 3 27B</span></p>
         </div>
       </div>
     </div>

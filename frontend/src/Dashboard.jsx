@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getTransactions, killToken, simulateBreach, generateToken, pay, rotateKeys, getCircuitBreakerTelemetry, getVaultTelemetry, getAuditLedger } from './api';
+import { getTransactions, killToken, simulateBreach, generateToken, pay, rotateKeys, getCircuitBreakerTelemetry, getVaultTelemetry, getAuditLedger, resetCircuitBreaker } from './api';
 
 function RiskBar({ score }) {
   if (score === null || score === undefined) return (
@@ -129,11 +129,21 @@ export default function Dashboard({ refreshTrigger }) {
     try {
       const res = await rotateKeys();
       setVaultTelemetry(prev => ({ ...prev, kek_version: res.kek_version }));
-      alert(`Success: Rotated Master Key to KEK version ${res.kek_version}. All cards in the SQLite vault have been re-wrapped with the new KEK.`);
+      showToast(`✅ KEK rotated to v${res.kek_version} — all vault cards re-wrapped`);
     } catch (err) {
-      alert("Key Rotation failed: " + (err.response?.data?.detail || err.message));
+      showToast(`❌ Key rotation failed: ` + (err.response?.data?.detail || err.message));
     } finally {
       setRotateLoading(false);
+    }
+  };
+
+  const handleResetCircuitBreaker = async () => {
+    try {
+      const res = await resetCircuitBreaker();
+      setCbTelemetry(prev => ({ ...prev, state: 'closed', failure_count: 0 }));
+      showToast('🔌 Circuit Breaker reset to CLOSED state successfully.');
+    } catch (err) {
+      showToast('❌ Failed to reset circuit breaker: ' + (err.response?.data?.detail || err.message));
     }
   };
 
@@ -431,9 +441,19 @@ export default function Dashboard({ refreshTrigger }) {
               <p>Consecutive Failures: {cbTelemetry ? cbTelemetry.failure_count : 0} / 3</p>
               <p>Recovery Window: 30 seconds</p>
             </div>
-            <div className="flex items-center gap-1.5 text-2xs font-semibold">
-              <span className={`w-2.5 h-2.5 rounded-full ${cbTelemetry && cbTelemetry.state === 'closed' ? 'bg-ok animate-pulse' : 'bg-bad animate-pulse'}`} />
-              <span className="text-ink-2">{cbTelemetry && cbTelemetry.state === 'closed' ? 'API Available' : 'Failing Over to Local ML'}</span>
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="flex items-center gap-1.5 text-2xs font-semibold">
+                <span className={`w-2.5 h-2.5 rounded-full ${cbTelemetry && cbTelemetry.state === 'closed' ? 'bg-ok animate-pulse' : 'bg-bad animate-pulse'}`} />
+                <span className="text-ink-2 mr-2">{cbTelemetry && cbTelemetry.state === 'closed' ? 'API Available' : 'Failing Over to Local ML'}</span>
+              </div>
+              {cbTelemetry && cbTelemetry.state !== 'closed' && (
+                <button
+                  onClick={handleResetCircuitBreaker}
+                  className="btn bg-accent text-white hover:bg-accent-focus text-xs font-semibold py-1.5 px-3 rounded-btn cursor-pointer shrink-0"
+                >
+                  Reset Circuit
+                </button>
+              )}
             </div>
           </div>
         </div>

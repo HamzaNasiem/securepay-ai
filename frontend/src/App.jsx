@@ -244,7 +244,7 @@ export default function App() {
           <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-4 font-mono">
             <span className={`flex items-center gap-1 ${amdOnline ? 'text-accent' : 'text-ink-4'}`}>
               <span className="inline-block w-1.5 h-1.5 rounded-full" style={{backgroundColor: amdOnline ? '#c15f3c' : '#6b7280'}} />
-              DeepSeek V4 Pro
+              Gemma 3 27B
             </span>
             <span className="text-border hidden sm:inline">|</span>
             <span>Fireworks AI</span>

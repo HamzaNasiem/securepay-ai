@@ -480,17 +480,17 @@ async def _run_async_llm_audit(payload: dict, txn_id: str):
     try:
         api_key  = os.environ.get("FIREWORKS_API_KEY",  "").strip()
         base_url = os.environ.get("FIREWORKS_BASE_URL", "https://api.fireworks.ai/inference/v1").strip()
-        model    = os.environ.get("FIREWORKS_MODEL",    "accounts/fireworks/models/deepseek-v4-pro").strip()
+        model    = os.environ.get("FIREWORKS_MODEL",    "accounts/fireworks/models/gemma-3-27b-it").strip()
         
         is_placeholder = not api_key or "your_fireworks_key" in api_key or "fw_your_api_key" in api_key
         
         if is_placeholder:
             await asyncio.sleep(2.0) # simulate LLM latency
             audit_explanation = (
-                "Post-Audit: XGBoost score confirmed by simulated DeepSeek-V4 model. "
+                "Post-Audit: XGBoost score confirmed by Gemma 3 27B simulation. "
                 "Transaction parameters evaluated successfully. Zero anomalies flagged."
             )
-            model_used = "deepseek-v4-pro-async-sim"
+            model_used = "gemma-3-27b-it-async-sim"
         else:
             user_content = json.dumps(payload, ensure_ascii=False)
             request_body = {
@@ -560,7 +560,7 @@ async def chat_with_agent(message: str, transaction: dict) -> dict[str, Any]:
                     "I have successfully processed your override request, whitelisted the location/device parameters, "
                     "and resumed your token. You may now retry the payment!"
                 ),
-                "model": "deepseek-v4-pro-local-agent"
+                "model": "gemma-3-27b-it-local-agent"
             }
         
         # Scenario 2: Limit modifications
@@ -575,7 +575,7 @@ async def chat_with_agent(message: str, transaction: dict) -> dict[str, Any]:
                     "Understood. I have updated the spending policy for this token and raised the spend limit. "
                     "You can now retry the checkout safely."
                 ),
-                "model": "deepseek-v4-pro-local-agent"
+                "model": "gemma-3-27b-it-local-agent"
             }
         
         # Scenario 3: Explanation questions
@@ -587,11 +587,11 @@ async def chat_with_agent(message: str, transaction: dict) -> dict[str, Any]:
                     "This transaction was flagged due to a context mismatch (such as unrecognized device/location or spend cap limit). "
                     "To override this and authorize the payment, please reply 'yes' or 'whitelist' to resume."
                 ),
-                "model": "deepseek-v4-pro-local-agent"
+                "model": "gemma-3-27b-it-local-agent"
             }
 
-    # ── Fireworks DeepSeek V4 Pro Agent execution ─────────────────────────────
-    model = os.environ.get("FIREWORKS_MODEL", "accounts/fireworks/models/deepseek-v4-pro")
+    # ── Fireworks Gemma 3 27B IT Agent execution ─────────────────────────────
+    model = os.environ.get("FIREWORKS_MODEL", "accounts/fireworks/models/gemma-3-27b-it")
     url   = f"{os.environ.get('FIREWORKS_BASE_URL', 'https://api.fireworks.ai/inference/v1')}/chat/completions"
     
     system_prompt = (
@@ -650,10 +650,29 @@ async def chat_with_agent(message: str, transaction: dict) -> dict[str, Any]:
 
     except Exception as exc:
         logger.exception("ai_risk: agent call failed: %s — falling back to local simulation", exc)
-        # fallback to local simulation
+        # Fallback: give a contextual reply instead of always saying 'whitelisted'
+        if any(w in msg_lower for w in ["yes", "authorize", "approve", "confirm", "whitelist", "override", "krdo", "chalao"]):
+            reply = "Override request registered. The token has been temporarily resumed so you can retry the payment."
+            action = "resume_token"
+        elif any(w in msg_lower for w in ["limit", "increase", "raise", "amount", "spend"]):
+            reply = "Spend limit raised for this token. You can now complete the checkout."
+            action = "increase_limit"
+        elif any(w in msg_lower for w in ["hi", "hello", "hey", "kia", "kya", "kia bol", "what", "help"]):
+            reply = (
+                "Hello! I'm the SecurePay AI Security Analyst. I can help you verify flagged transactions, "
+                "override blocked payments, or adjust token policies. "
+                "Type 'yes' or 'approve' to authorize the pending payment, or ask me a question."
+            )
+            action = None
+        else:
+            reply = (
+                "This transaction was flagged due to a risk factor (device/location mismatch or spend anomaly). "
+                "I can override this — just say 'yes' or 'approve' to authorize, or 'limit' to adjust the token spending cap."
+            )
+            action = None
         return {
-            "thought": "Agent call failed. Falling back to local verification rules.",
-            "action": "resume_token" if "yes" in msg_lower or "whitelist" in msg_lower else None,
-            "reply": "I encountered an AI connectivity exception, but based on your input I have whitelisted and resumed the token.",
-            "model": "fallback-agent"
+            "thought": "Gemma 3 API call failed. Using local rule-based fallback agent.",
+            "action": action,
+            "reply": reply,
+            "model": "gemma-3-local-fallback"
         }

@@ -112,4 +112,9 @@ export const getAuditLedger = async () => {
   return response.data;
 };
 
+export const resetCircuitBreaker = async () => {
+  const response = await client.post('/telemetry/circuit-breaker/reset');
+  return response.data;
+};
+
 export default client;
