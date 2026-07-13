@@ -292,7 +292,7 @@ async def score_transaction(payload: dict, txn_id: str = None) -> dict:
     # 3. Otherwise: Attempt Fireworks API call using the Circuit Breaker!
     api_key  = os.environ.get("FIREWORKS_API_KEY",  "").strip()
     base_url = os.environ.get("FIREWORKS_BASE_URL", "https://api.fireworks.ai/inference/v1").strip()
-    model    = os.environ.get("FIREWORKS_MODEL",    "accounts/fireworks/models/gemma-3-27b-it").strip()
+    model    = os.environ.get("FIREWORKS_MODEL",    "accounts/fireworks/models/deepseek-v4-pro").strip()
 
     is_placeholder = not api_key or "your_fireworks_key" in api_key or "fw_your_api_key" in api_key
 
@@ -349,7 +349,7 @@ async def score_transaction(payload: dict, txn_id: str = None) -> dict:
         }
 
         async with httpx.AsyncClient(
-            timeout=httpx.Timeout(timeout=15.0, connect=3.0, read=12.0, write=3.0)
+            timeout=httpx.Timeout(timeout=30.0, connect=5.0, read=25.0, write=5.0)
         ) as client:
             response = await client.post(
                 f"{base_url}/chat/completions",
@@ -590,8 +590,8 @@ async def chat_with_agent(message: str, transaction: dict) -> dict[str, Any]:
                 "model": "gemma-3-27b-it-local-agent"
             }
 
-    # ── Fireworks Gemma 3 27B IT Agent execution ─────────────────────────────
-    model = os.environ.get("FIREWORKS_MODEL", "accounts/fireworks/models/gemma-3-27b-it")
+    # ── Fireworks DeepSeek V4 Pro Agent execution ─────────────────────────────
+    model = os.environ.get("FIREWORKS_MODEL", "accounts/fireworks/models/deepseek-v4-pro")
     url   = f"{os.environ.get('FIREWORKS_BASE_URL', 'https://api.fireworks.ai/inference/v1')}/chat/completions"
     
     system_prompt = (

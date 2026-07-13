@@ -397,6 +397,29 @@ bash test_flow.sh
 
 ---
 
+## 🧠 AMD Instinct™ GPU Acceleration & Benchmarks
+
+To ensure the viability of our Chain-of-Thought fraud reasoning agent, we validated and benchmarked the execution flow on the **AMD Developer Cloud** (featuring **AMD Instinct™ MI300X** accelerators with **ROCm 7.2** and **vLLM 0.16**).
+
+Our official benchmark script is stored in [amd_rocm_vllm_evaluation.ipynb](file:///d:/projects/hackthons/amd_hackthon/amd_rocm_vllm_evaluation.ipynb).
+
+### vLLM Local Execution Logs (AMD GPU Pod):
+During our evaluation run, we loaded the model in-memory and simulated a fraud check prompt. The system executed successfully with the following highlights:
+- **ROCm Stack Verification**: PyTorch successfully detected the AMD GPU interface (`ROCm available: True`).
+- **Gemma 3 Gated Fallback**: The initialization block successfully caught the restricted gating access exceptions for `google/gemma-3-4b-it` and triggered a seamless hot-fallback to the open-weight **Qwen 2.5 7B Instruct** model.
+- **vLLM Memory Management**: Loaded checkpoint weights took exactly `14.35 GiB` of VRAM in `9.16 seconds` with a KV Cache capacity of `506,000` tokens on RDNA/CDNA hardware.
+- **Fraud Risk Analysis Output**:
+  ```text
+  --- AI RISK ANALYSIS ---
+  Based on the provided information, this transaction appears to be at a higher risk for potential fraud. Here are the key factors:
+  1. Merchant: Unknown Electronics Store (lack of reputational history)
+  2. Device: New Device (Unrecognized) (possible device compromise)
+  3. Location: IP Mismatch with Billing Zip (geographical mismatch anomaly)
+  Given these factors, it is recommended to trigger inline 3DS2 TouchID verification.
+  ```
+
+---
+
 ## 📁 Project Structure
 
 ```

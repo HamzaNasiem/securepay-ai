@@ -22,7 +22,7 @@ services:
       - REDIS_URL=redis://redis:6379
       - VAULT_DB_PATH=vault.db
       - FIREWORKS_BASE_URL=https://api.fireworks.ai/inference/v1
-      - FIREWORKS_MODEL=accounts/fireworks/models/gemma-3-27b-it
+      - FIREWORKS_MODEL=accounts/fireworks/models/deepseek-v4-pro
     depends_on:
       redis:
         condition: service_healthy
