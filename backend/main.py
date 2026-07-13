@@ -79,24 +79,90 @@ _transactions: deque = deque(maxlen=200)
 register_transactions_feed(_transactions)
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Redis client — shared across requests via app state
+# Redis client / Mock fallback — shared across requests via app state
 # ──────────────────────────────────────────────────────────────────────────────
-_redis: Optional[aioredis.Redis] = None
+import time
+import fnmatch
+
+class MockRedis:
+    def __init__(self):
+        self.store = {}
+        self.expires = {}
+        logger.warning("MockRedis: Initialized in-memory token store fallback.")
+
+    async def ping(self):
+        return True
+
+    async def get(self, key):
+        self._check_expiry(key)
+        return self.store.get(key)
+
+    async def set(self, key, value):
+        self.store[key] = value
+        if key in self.expires:
+            del self.expires[key]
+        return True
+
+    async def setex(self, key, ttl, value):
+        self.store[key] = value
+        self.expires[key] = time.time() + ttl
+        return True
+
+    async def delete(self, key):
+        if key in self.store:
+            del self.store[key]
+            if key in self.expires:
+                del self.expires[key]
+            return 1
+        return 0
+
+    async def ttl(self, key):
+        self._check_expiry(key)
+        if key not in self.store:
+            return -2
+        if key not in self.expires:
+            return -1
+        rem = int(self.expires[key] - time.time())
+        return max(0, rem)
+
+    async def keys(self, pattern):
+        keys_to_return = []
+        for k in list(self.store.keys()):
+            self._check_expiry(k)
+            if k in self.store and fnmatch.fnmatch(k, pattern):
+                keys_to_return.append(k)
+        return keys_to_return
+
+    async def aclose(self):
+        pass
+
+    def _check_expiry(self, key):
+        if key in self.expires and time.time() > self.expires[key]:
+            if key in self.store:
+                del self.store[key]
+            del self.expires[key]
+
+_redis = None
 
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     """Start-up: connect to Redis and initialize vault. Shut-down: close connection."""
     global _redis
-    redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379")
-    logger.info("Connecting to Redis at %s", redis_url)
-    _redis = aioredis.from_url(redis_url, decode_responses=True)
-    try:
-        await _redis.ping()
-        logger.info("Redis connection established ✓")
-    except Exception as exc:
-        logger.critical("Cannot reach Redis at %s — %s", redis_url, exc)
-        raise
+    redis_url = os.environ.get("REDIS_URL", "").strip()
+    
+    if not redis_url:
+        logger.warning("REDIS_URL not set. Falling back to in-memory MockRedis.")
+        _redis = MockRedis()
+    else:
+        logger.info("Connecting to Redis at %s", redis_url)
+        try:
+            _redis = aioredis.from_url(redis_url, decode_responses=True)
+            await _redis.ping()
+            logger.info("Redis connection established ✓")
+        except Exception as exc:
+            logger.error("Cannot reach Redis at %s — %s. Falling back to MockRedis.", redis_url, exc)
+            _redis = MockRedis()
 
     try:
         await init_vault()
@@ -106,13 +172,14 @@ async def _lifespan(app: FastAPI):
 
     yield   # ← application runs here
 
-    await _redis.aclose()
+    if _redis is not None:
+        await _redis.aclose()
     logger.info("Redis connection closed.")
 
 
-def _get_redis() -> aioredis.Redis:
+def _get_redis():
     if _redis is None:
-        raise HTTPException(status_code=503, detail="Redis not available — check REDIS_URL.")
+        raise HTTPException(status_code=503, detail="Redis not available.")
     return _redis
 
 
